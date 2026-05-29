@@ -1,189 +1,258 @@
 # mod_fastpix
 
-A Moodle activity that lets teachers add a FastPix-hosted video to any course, tracks how much each student actually watches, and writes completion + grade automatically.
+A Moodle activity module that lets teachers add a
+[FastPix](https://www.fastpix.com)-hosted video to any course, tracks how
+much of each video a student actually watches, and writes activity
+completion and grades automatically. It builds on `local_fastpix`, the
+foundation plugin that provides the FastPix credentials, HTTP gateway,
+webhook ingestion, and playback-token signing.
 
-> **Version:** v1.0.0 · **Requires:** Moodle 4.5 LTS+, PHP 8.1+, `local_fastpix` v1.0.0+ · **Licence:** GPL-3.0+
+Use this plugin if you run a Moodle site with `local_fastpix` already
+connected and you want teachers to embed FastPix videos as graded,
+completion-tracked activities. `mod_fastpix` never contacts FastPix
+directly; every video operation goes through `local_fastpix`. On its own,
+it adds the **FastPix Video** activity type, the player view, the watch
+tracker, completion and gradebook integration, and backup/restore.
 
-> 📘 **Full setup & usage guide:** [fastpix.com/docs/moodle](https://fastpix.com/docs/moodle).
+## Features
 
----
+### Video authoring
 
-## What it is
+- Two ways to add a video: drag-and-drop upload, or paste a direct URL
+  that FastPix fetches.
+- Resumable chunked uploads with a live progress bar, so large files
+  survive an unreliable connection.
+- URL-pull sources are validated by the `local_fastpix` SSRF guard.
 
-`mod_fastpix` is the **student-facing activity** of the FastPix-for-Moodle suite. It's what teachers add to a course (`+ Add an activity or resource → FastPix Video`), what students click to watch, and what writes results to the gradebook when they're done.
+### Playback experience
 
-Under the hood it consumes `local_fastpix` for everything FastPix-related (credentials, gateway, JWT signing, webhooks). `mod_fastpix` itself owns the activity edit form, the player view, the progress tracker, the six fraud checks, completion, and backup/restore.
+- Modern adaptive player that works across browsers, mobile, and slow
+  networks.
+- Watch progress is saved server-side every 10 seconds and on tab close,
+  so a student resumes where they left off on any device.
+- A **Preparing your video** card is shown while a freshly uploaded video
+  is transcoding; it swaps to the player automatically when the video is
+  ready.
+- Optional captions on by default, with a per-activity toggle.
 
-If `local_fastpix` is the wiring, `mod_fastpix` is the light switch.
+### Completion and grading
 
----
+- Per-activity completion threshold based on watch coverage, not playhead
+  position (default 90%).
+- Completion is driven by the unique seconds a student watched, merged and
+  deduplicated, so dragging the timeline forward or re-watching the same
+  minute does not inflate progress.
+- The grade is written once, at full marks, through Moodle's standard
+  grade API when the student crosses the threshold.
 
-## What teachers get
+### Watch tracking and integrity
 
-- **Two ways to add a video** — drag-and-drop upload, or paste a URL and FastPix fetches it.
-- **Per-video completion threshold** — set what percentage of the video a student must watch to complete (default 90%).
-- **Disable seeking** — for compliance / assessment videos, students must watch through; no skipping ahead.
-- **Show captions by default** — accessible by default; learners can still toggle off in the player.
-- **Real progress reporting** — the gradebook shows actual watch coverage, not just "video played".
+- Six server-side fraud checks run on every progress callback, covering
+  timeline tampering, simulated playback, and capability loss.
+- Failed checks increment a per-attempt counter and record a typed reason;
+  they do not silently block the student.
+- An optional **Disable seeking** mode rejects forward seeks for
+  compliance and assessment videos.
 
-## What students get
+### Backup, restore, and privacy
 
-- **Modern adaptive player** — works on every modern browser, on mobile, on slow networks.
-- **Two progress bars** under the video:
-  - **Position** — where the playhead is right now.
-  - **Coverage** — how many seconds they have actually watched.
-- **Resume after refresh** — closing the tab and coming back picks up exactly where they left off.
-- **Captions on demand** — every video has a CC button; defaults set by the teacher.
-- **One activity, one click** — no separate login, no third-party player.
+- Full support for Moodle's standard course backup and restore, including
+  per-user attempt rows; asset references are preserved.
+- Full Moodle Privacy API support, including per-user export and deletion
+  under GDPR.
 
-## What admins get
+## Requirements
 
-- **Six-layer fraud detection** — every progress callback runs server-side checks (timeline tampering, simulated playback, capability loss). Failed checks are logged with a typed reason.
-- **Backup / restore** — activities round-trip cleanly through Moodle's course backup; asset references survive copies and recycle-bin actions.
-- **GDPR privacy provider** — data export and delete work from Moodle's standard data-request UI.
-- **No new infrastructure** — uses Moodle's existing cron, gradebook, completion, and capability systems.
+- Moodle 4.5 LTS or later.
+- PHP 8.1 or later (tested through PHP 8.3).
+- `local_fastpix` v1.0.0 or later, installed and connected to a FastPix
+  account, with a green **Authenticated** result on its **Test
+  connection** button. [Set up the foundation plugin](https://fastpix.com/docs/moodle/local-plugin)
+  first if you haven't.
+- A short test video (MP4, under 100 MB) for verification.
 
----
+### Supported databases
 
-## How completion works
+The plugin works with any database server supported by Moodle:
 
-Coverage drives completion, not playback position. Two reasons:
-1. A student can drag the timeline to 100% in one second — that's not learning.
-2. Re-watching the same minute three times shouldn't count as three minutes watched.
-
-So the plugin tracks **which seconds the student actually watched** (sorted, deduplicated, merged). When the sum of unique seconds crosses your threshold (default 90%) of the video duration, the activity completes and the grade is written.
-
-Re-watching counts once. Skipping ahead counts as zero. Pausing is free. The numbers reflect time actually spent watching the content.
-
----
-
-## What this plugin does NOT do
-
-- ❌ Can't be installed standalone. Requires `local_fastpix` v1.0.0+ to be installed first.
-- ❌ Doesn't talk to FastPix directly. Every FastPix call goes through `local_fastpix`.
-- ❌ Doesn't host video bytes. Those live on FastPix.
-- ❌ Doesn't survive a course restored onto a Moodle pointing at a different FastPix account — videos show "Video unavailable" by design.
-- ❌ Doesn't add a HTML editor button or filter (those are future plugins).
-
----
-
-## How to install
-
-Plan for **10 minutes**, assuming `local_fastpix` is already installed and connected.
-
-### Before you start
-- A Moodle site you can log into as **Site administrator**.
-- **`local_fastpix` v1.0.0+ already installed and connected** to a FastPix account. See `local/fastpix/PRODUCT.md` if you haven't done this yet.
-- The plugin ZIP: `mod_fastpix-v1.0.0.zip` from your provider or GitHub Releases.
-- A short test video (MP4, under 100 MB).
-
-### Step 1. Install the plugin
-1. Log into Moodle as Site administrator.
-2. **Site administration → Plugins → Install plugins**.
-3. Drag `mod_fastpix-v1.0.0.zip` onto the drop-zone.
-4. Click **Install plugin from the ZIP file** → **Continue** through validation.
-5. On the "Plugins requiring attention" screen, click **Upgrade Moodle database now**.
-6. Wait for the green **Success** tick → **Continue**.
-
-✅ *Verify:* **Site administration → Plugins → Activity modules → Manage activities** lists **FastPix Video** with the green FastPix logo.
-
-### Step 2. Add a test activity
-1. Open any course (create a sandbox course if you don't have one).
-2. Turn **edit mode** on.
-3. **Add an activity or resource → FastPix Video**.
-
-### Step 3. Fill in the activity form
-1. **Name** — e.g. "Week 1 Welcome Video".
-2. **Description** — optional.
-3. **Video source** — drag your test MP4 onto the drop-zone, or paste a URL.
-4. **Playback options** (optional):
-   - Tick **Disable seeking** to block forward jumps.
-   - Tick **Show captions by default** if your video has captions and you want them visible on load.
-5. **Activity completion** (optional but recommended):
-   - **Completion tracking** → **Show activity as complete when conditions are met**.
-   - Tick **Watched at least…%** and set a threshold (default 90).
-6. **Save and display.**
-
-### Step 4. Wait for processing
-FastPix transcodes the video for streaming, usually under a minute. You'll see a "Video is processing" message that auto-refreshes. When ready, the player appears.
-
-### Step 5. Test as a student
-1. Log in as a student (or use **Switch role to → Student**).
-2. Open the activity. The player loads and starts.
-3. Watch the **Position** and **Coverage** bars under the player.
-4. Watch through to the completion threshold. The bar turns green and the activity is marked complete.
-5. Check the gradebook — the grade has been written automatically.
-
----
-
-## Install checklist
-
-- [ ] `local_fastpix` is installed and shows the green "Connected" badge
-- [ ] `mod_fastpix` ZIP installed without errors
-- [ ] Upgrade screen showed green Success
-- [ ] **FastPix Video** appears in the activity chooser with the green FastPix logo
-- [ ] Added a FastPix Video activity to a test course
-- [ ] Uploaded a test MP4
-- [ ] Saw the player load + the two progress bars
-- [ ] Watched past the completion threshold → green tick → grade in gradebook
-
-8 ticks = `mod_fastpix` is healthy.
-
----
-
-## Common questions
-
-**Q: Can teachers upload without involving the admin?**
-A: Yes. Once `local_fastpix` is connected, any user with the `mod/fastpix:uploadmedia` capability (editing teachers by default) can upload from their own course.
-
-**Q: What if a student switches devices mid-video?**
-A: Watch progress is persisted server-side every 10 seconds and on tab-close. When the student opens the video again — on the same or a different device — they resume from where they left off, and the coverage they've already earned counts.
-
-**Q: What does the player do offline?**
-A: Playback stops; watch-progress callbacks queue in browser localStorage and retry when the connection returns. No progress is lost as long as the tab is still open when connectivity is restored.
-
-**Q: Are there abuse / cheating protections?**
-A: Yes — six server-side fraud checks run on every progress callback:
-1. Watched time can't exceed video length.
-2. Watched time can't exceed wall-clock time since session start.
-3. Coverage can't decrease.
-4. Single-tick gains can't exceed elapsed time.
-5. Capability is re-verified every callback.
-6. Seek-on-no-skip activities reject forward seeks.
-
-Failed checks increment a per-attempt fraud counter and log a typed reason. The teacher's gradebook view (with the right capability) shows the badge.
-
-**Q: Can a teacher manually override a grade?**
-A: Yes. The `mod/fastpix:graderoverride` capability allows manual gradebook editing in the standard Moodle way. The activity's own automatic write happens exactly once, on the 0→1 completion transition; overrides aren't fought over.
-
-**Q: How does it handle backup / restore?**
-A: The activity is backed up with its settings and (optionally) per-user attempt rows. The video reference (`fastpix_asset_id`) is preserved. Restoring on the same Moodle (same FastPix account) plays normally. Restoring on a different account shows "Video unavailable" — by design, since the video lives on a tenant that target Moodle can't reach.
-
-**Q: Is the source auditable?**
-A: Yes. GPL-3.0. All architectural decisions are in `.claude/` and reference back to `02-mod-fastpix.md`.
-
-**Q: What if I uninstall it?**
-A: Course content and Moodle users are untouched. The plugin's tables (`mdl_fastpix`, `mdl_fastpix_attempt`) are removed. Videos on FastPix are not deleted. To remove videos from FastPix, do it from the FastPix dashboard.
-
----
-
-## What's coming next
-
-| Release | Highlight |
+| Database | Minimum version |
 |---|---|
-| **v1.0** *(now)* | Activity module, two-bar UI, six fraud checks, completion + gradebook, backup/restore, GDPR |
-| v1.1 | Per-activity accent colour, allow-forward-block-backward seek policy |
-| v1.2 | Teacher analytics view — coverage heat-map, drop-off points |
-| v2.0 | Live captions in the player |
+| MariaDB | 10.6.7 |
+| MySQL | 8.0 |
+| PostgreSQL | 13 |
+| MS SQL Server | 2017 |
+| Oracle | 19c |
 
----
+> **Note:** Oracle support is deprecated in Moodle. If you're starting a
+> new deployment, pick one of the other databases.
 
-## More information
+## Install
 
-- Full setup & usage guide: [fastpix.com/docs/moodle](https://fastpix.com/docs/moodle)
-- The foundation plugin: `local/fastpix/PRODUCT.md`
-- Architecture: `mod/fastpix/.claude/`
-- Project status & known limitations: [STATUS.md](STATUS.md)
-- Release notes: [CHANGELOG.md](CHANGELOG.md)
-- Licence: [LICENSE](LICENSE)
-- FastPix documentation: [fastpix.com/docs](https://fastpix.com/docs)
+Choose one of the following methods.
+
+### Install from the Moodle Plugins directory
+
+1. Sign in to your Moodle site as an administrator.
+2. Go to **Site administration > Plugins > Install plugins**.
+3. Search for **FastPix Video** and follow the prompts.
+
+### Install from a ZIP file
+
+1. Download the latest release from the **Download** button on this Moodle
+   plugins directory page, or from the GitHub Releases page.
+2. Sign in to your Moodle site as an administrator.
+3. Go to **Site administration > Plugins > Install plugins** and upload
+   the ZIP file. Don't unzip it first; Moodle installs the package
+   directly from the ZIP.
+4. Select **Install plugin from the ZIP file**, then continue through the
+   validation screen.
+5. On the **Plugins requiring attention** screen, select **Upgrade Moodle
+   database now**.
+6. When the upgrade finishes, select **Continue**.
+
+The install creates two database tables (`mdl_fastpix` and
+`mdl_fastpix_attempt`) and registers the **FastPix Video** activity type.
+There are no Composer dependencies at runtime.
+
+> **Note:** `mod_fastpix` cannot be installed standalone. Moodle blocks the
+> install with a dependency error until `local_fastpix` is present. If you
+> haven't set up the foundation plugin yet, do that first, see
+> [Set up local plugin](https://fastpix.com/docs/moodle/local-plugin).
+
+To confirm the install, go to **Site administration > Plugins > Activity
+modules > Manage activities**. **FastPix Video** appears in the list with
+the FastPix logo.
+
+## Usage
+
+Teachers add videos directly from a course; no further admin action is
+needed once `local_fastpix` is connected.
+
+### Add a video activity
+
+1. Open a course and turn **Edit mode** on.
+2. Select **Add an activity or resource**, then choose **FastPix Video**.
+3. Enter a **Name** and an optional **Description**.
+4. Add the video in the **Video source** section (see below).
+5. Set **Playback options**, **Activity completion**, and **Grade** as
+   needed.
+6. Select **Save and display**.
+
+> **Important:** The video is uploaded to FastPix when you save the
+> activity, not while you are still filling in the form. If you choose a
+> file and then leave without saving, nothing is uploaded.
+
+### Upload a video
+
+In the **Video source** section, drag a file onto the drop zone or select
+it from your device. When the progress bar reaches 100%, select **Save and
+display** to commit. Uploading requires the `mod/fastpix:uploadmedia`
+capability, which editing teachers hold by default.
+
+### Pull from a URL
+
+Instead of uploading, paste a direct video URL into the **Video URL** field
+and select **Upload**. FastPix fetches the file from that URL. Malformed or
+unreachable URLs are rejected by the `local_fastpix` SSRF guard.
+
+### Playback options
+
+In the **Playback options** section, set how the player behaves. Both
+settings are optional and apply only to this activity.
+
+- **Disable seeking**: blocks forward seeks during playback so students
+  must watch through. Backward seeks are still allowed.
+- **Show captions by default**: turns captions on when the player loads.
+  Learners can still toggle them off.
+
+### Completion and grade
+
+In the **Activity completion** section, set **Completion tracking** to
+**Show activity as complete when conditions are met**, tick **Students must
+watch the video**, and set the percentage (default 90%). In the **Grade**
+section, set the maximum grade (default 100). When a student crosses the
+threshold, the activity is marked complete and the grade is written once.
+
+## Watch tracking and anti-cheating
+
+The player posts watch progress to Moodle every 10 seconds. Each callback
+runs six server-side fraud checks, in order:
+
+1. Watched time cannot exceed the video duration.
+2. Watched time cannot exceed wall-clock time since the session started
+   (10-second tolerance).
+3. Coverage cannot decrease.
+4. A single callback's gain cannot exceed the elapsed time (10-second
+   tolerance).
+5. The student's view capability is re-verified on every callback.
+6. On **Disable seeking** activities, any forward seek is rejected.
+
+A failed check increments a per-attempt fraud counter and records a typed
+reason. When the counter passes 20, the gradebook shows a badge (visible
+with `mod/fastpix:viewallattempts`) so a teacher can review. Correction is
+a human decision, made with `mod/fastpix:graderoverride`.
+
+## Backup and restore
+
+`mod_fastpix` supports Moodle's standard course backup and restore. A
+backup captures the activity settings and per-user attempt rows, and
+preserves the asset reference, not the video bytes, which stay on FastPix.
+
+- Restoring onto the same Moodle (same FastPix account) plays normally.
+- Restoring onto a Moodle pointing at a different FastPix account shows
+  **Video unavailable**, because the asset doesn't exist in the new
+  account. This is expected behaviour, not a bug.
+
+Deleting an activity (including via the recycle bin) soft-deletes the
+underlying asset through `local_fastpix`.
+
+## Activity settings reference
+
+| Setting | Description | Default |
+|---|---|---|
+| **Video source** | Upload a file or pull from a URL through `local_fastpix`. | Required |
+| **Disable seeking** | Block forward seeks during playback. Backward seeks remain allowed. | Disabled |
+| **Show captions by default** | Turn captions on when the player loads. | Disabled |
+| **Students must watch the video** | Completion condition: minimum watch coverage to mark the activity complete. | 90% |
+| **Grade** | Maximum grade written when the student completes the activity. | 100 |
+
+## Capabilities
+
+| Capability | Description | Default role |
+|---|---|---|
+| `mod/fastpix:addinstance` | Add a FastPix Video activity to a course. | Editing teacher, Manager |
+| `mod/fastpix:view` | View and play a FastPix Video activity. | All enrolled roles |
+| `mod/fastpix:uploadmedia` | Upload a file or submit a URL for the activity's video. | Editing teacher |
+| `mod/fastpix:viewallattempts` | View per-student watch attempts and fraud badges. | Teacher, Manager |
+| `mod/fastpix:graderoverride` | Manually override the automatically written grade. | Teacher, Manager |
+
+The foundation capability `local/fastpix:configurecredentials` is defined
+by the `local_fastpix` plugin, not this one.
+
+## Privacy
+
+This plugin includes a full Moodle Privacy API provider. It declares every
+personal-data column in the attempt table (watch progress, seek count,
+fraud count, completion state, and session timestamps). Per-user export and
+deletion requests under GDPR are handled from Moodle's standard
+data-request UI.
+
+For full details after install, see **Site administration > Users >
+Privacy and policies > Data registry** in your Moodle site.
+
+## Support
+
+- File an issue on the
+  [issue tracker](https://github.com/FastPix/moodle-mod_fastpix/issues).
+- Read the [integration guide](https://fastpix.com/docs/moodle/activity-plugin)
+  for installation and usage walkthroughs.
+- Set up the [foundation plugin](https://fastpix.com/docs/moodle/local-plugin)
+  if you haven't already.
+- Read the [changelog](https://github.com/FastPix/moodle-mod_fastpix/blob/main/CHANGELOG.md)
+  for release notes.
+
+## License
+
+Copyright © 2026 FastPix Inc. Released under the
+[GNU GPL v3.0 or later](https://www.gnu.org/licenses/gpl-3.0.html). For the
+full license text, see [`LICENSE`](https://github.com/FastPix/moodle-mod_fastpix/blob/main/LICENSE).
