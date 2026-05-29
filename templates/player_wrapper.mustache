@@ -1,0 +1,134 @@
+{{!
+    @template mod_fastpix/player_wrapper
+
+    The player mount wrapper + segmented coverage-bar card. Extracted from
+    view.mustache so it can be rendered BOTH server-side (view.php → renderer)
+    AND client-side (processing_state_poller renders this partial via
+    core/templates when the asset goes ready, swapping it into the processing
+    region with no full-page reload).
+
+    The mount payload (view_state_player::to_player_payload) supplies every var
+    used here, so this partial renders identically in either path. There is no
+    inline-JS block here; the player AMD module's init/mount is triggered by the
+    caller (view.php via js_call_amd, or the poller via the player module).
+
+    NOTE — never write a curly-brace pair inside this comment. Mustache treats
+    the first closing brace pair it finds as the comment terminator, so any such
+    token leaks the rest of the comment as literal text at the top of the
+    rendered HTML. That stray leading text breaks the client-side swap: Moodle's
+    Templates/replaceNodeContents hands it to jQuery, which parses the leading
+    words as a CSS selector and throws "unrecognized expression".
+
+    The wrapper carries data-* attributes (the documented watch_tracker context
+    contract, CC4). They are harmless — the AMD player reads from the payload,
+    not these attrs — but preserved so existing consumers keep working.
+
+    Player attribute names are pinned to the @fastpix/fp-player web component
+    public surface (CC9). Renaming without reading upstream docs is a CC9
+    violation — the player silently renders an inert black box if attrs drift.
+
+    Context variables:
+      * playback_id              string
+      * playback_token           string  (DRM JWT)
+      * expires_at_ts            int     (unix seconds)
+      * drm_required             bool
+      * accent_color             string|null
+      * default_show_captions    bool
+      * activity_name            string
+      * activity_id              int
+      * cm_id                    int
+      * asset_id                 int
+      * session_token            string
+      * no_skip_required         bool
+      * initial_coverage_percent int
+      * completion_watch_percent int
+      * current_position         float
+      * asset_duration_seconds   int
+      * initial_intervals_json   string
+      * has_completed            bool
+      * drm_token                string
+      * intro_html               string  (formatted activity intro; may be empty)
+      * (completed-indicator var)  has_completed (initial visibility only)
+
+    DESCRIPTION (intro_html) — rendered BELOW the player + completed pill, inside
+    the .mod_fastpix-lede card, ONLY when non-empty (the section wrap suppresses
+    an empty card). format_module_intro already filters/sanitises the teacher's
+    intro, so it is emitted via the raw triple-brace output — the standard Moodle
+    pattern for pre-formatted intro HTML. Living here (not in view.php) means the
+    description appears with the player in BOTH the server render and the in-place
+    processing→player poller swap, and is naturally absent on processing/error.
+
+    COMPLETED INDICATOR — the single watch-status UI, and the ONLY thing it ever
+    shows is "Completed". It is absolutely positioned in the top-right corner
+    INSIDE this wrapper (the wrapper is position:relative, set in styles.css),
+    overlaid on the video so it never collides with the player's bottom control
+    bar. There is NO background box/pill/backdrop — just the inline-SVG check +
+    "Completed" text, made legible over the dark video with a text-shadow.
+
+    Visibility is binary: hidden until completion. On first paint the indicator is
+    hidden unless has_completed is true (the .is-complete class on the root node
+    toggles it; default hidden). When the coverage tracker in player.js crosses
+    the completion threshold it adds .is-complete (sticky — never removed). The
+    tracker only toggles that class; it never rebuilds the node or constructs icon
+    markup. The check is INLINE SVG (zero font dependency) so a missing icon-font
+    glyph can never render a square. data-region="fastpix-status" is the single
+    AMD hook. The carrier data-threshold/data-asset-duration on this wrapper feed
+    the unchanged coverage tracker (it reads them off the wrapper).
+
+    Example context (json):
+    {
+        "playback_id": "abc123",
+        "playback_token": "jwt",
+        "drm_token": "",
+        "drm_required": false,
+        "accent_color": "#ec1e5b",
+        "no_skip_required": false,
+        "activity_name": "Welcome video",
+        "activity_id": 1,
+        "cm_id": 2,
+        "asset_id": 3,
+        "session_token": "tok",
+        "current_position": 0,
+        "asset_duration_seconds": 120,
+        "completion_watch_percent": 90,
+        "completion_enabled": true,
+        "has_completed": false,
+        "expires_at_ts": 0,
+        "intro_html": "<p>Intro.</p>"
+    }
+}}
+<div class="mod_fastpix-player-wrapper"
+     data-region="fastpix-player-wrapper"
+     data-cm-id="{{cm_id}}"
+     data-activity-id="{{activity_id}}"
+     data-asset-id="{{asset_id}}"
+     data-session-token="{{session_token}}"
+     data-expires-at="{{expires_at_ts}}"
+     data-no-skip-required="{{#no_skip_required}}1{{/no_skip_required}}{{^no_skip_required}}0{{/no_skip_required}}"
+     data-playback-id="{{playback_id}}"
+     data-playback-token="{{playback_token}}"
+     data-drm-token="{{drm_token}}"
+     data-drm-required="{{#drm_required}}1{{/drm_required}}{{^drm_required}}0{{/drm_required}}"
+     data-accent-color="{{accent_color}}"
+     data-video-title="{{activity_name}}"
+     data-current-position="{{current_position}}"
+     data-threshold="{{completion_watch_percent}}"
+     data-asset-duration="{{asset_duration_seconds}}"
+     style="position:relative;display:block;width:100%;aspect-ratio:16/9;background:#000;">
+
+    <div class="mod_fastpix-status-complete{{#completion_enabled}}{{#has_completed}} is-complete{{/has_completed}}{{/completion_enabled}}"
+         data-region="fastpix-status"
+         role="status" aria-live="polite">
+
+        <svg class="mod_fastpix-status-svg" viewBox="0 0 24 24"
+             role="img" focusable="false" aria-hidden="true">
+            <path d="M5 12.5 L10 17.5 L19 7" fill="none" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+
+        <span class="mod_fastpix-status-label">{{#str}}status_completed, mod_fastpix{{/str}}</span>
+    </div>
+</div>
+{{#intro_html}}
+<div class="mod_fastpix-lede">{{{intro_html}}}</div>
+{{/intro_html}}

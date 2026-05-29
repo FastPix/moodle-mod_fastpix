@@ -1,0 +1,24 @@
+{{!
+    @template mod_fastpix/error
+
+    User-facing error message. Only one of the boolean flags is true.
+
+    Context variables:
+      * activity_name        string
+      * is_videounavailable  bool
+      * is_drm_unsupported   bool
+      * is_capability_lost   bool
+
+    Example context (json):
+    {
+        "is_videounavailable": true,
+        "is_drm_unsupported": false,
+        "is_capability_lost": false,
+        "activity_name": "Welcome video"
+    }
+}}
+<div class="mod_fastpix-error alert alert-warning" role="alert">
+    {{#is_videounavailable}}{{#str}}error_videounavailable, mod_fastpix{{/str}}{{/is_videounavailable}}
+    {{#is_drm_unsupported}}{{#str}}error_drm_unsupported, mod_fastpix{{/str}}{{/is_drm_unsupported}}
+    {{#is_capability_lost}}{{#str}}error_capability_lost, mod_fastpix{{/str}}{{/is_capability_lost}}
+</div>

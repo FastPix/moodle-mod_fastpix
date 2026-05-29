@@ -1,0 +1,22 @@
+{{!
+    @template mod_fastpix/view
+
+    Renders the FastPix player state (ready). The player wrapper + coverage
+    bar live in the mod_fastpix/player_wrapper partial so they can also be
+    rendered client-side by processing_state_poller for the in-place
+    processing→player swap (no full-page reload).
+
+    The player AMD module's init() is triggered from view.php via
+    js_call_amd (NOT from an inline-JS block here) because the canonical mount
+    payload is built server-side by view_state_player::to_player_payload().
+
+    NOTE — never write a curly-brace pair inside this comment. Mustache treats
+    the first closing brace pair it finds as the comment terminator, so such a
+    token leaks the rest of the comment as visible text on the page.
+
+    Context variables: see mod_fastpix/player_wrapper.
+
+    Example context (json):
+    {}
+}}
+{{> mod_fastpix/player_wrapper }}

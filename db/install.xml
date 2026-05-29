@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/fastpix/db" VERSION="20260508" COMMENT="XMLDB file for Moodle mod_fastpix"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="fastpix" COMMENT="FastPix Video activity instances">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="fastpix_asset_id" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="FK to local_fastpix_asset.id; NULL until upload webhook arrives."/>
+        <FIELD NAME="upload_session_id" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="FK to local_fastpix_upload_session.id for in-flight uploads."/>
+        <FIELD NAME="completion_watch_percent" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="90" SEQUENCE="false"/>
+        <FIELD NAME="no_skip_required" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="default_show_captions" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="grademax" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" DECIMALS="5"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="fastpix_attempt" COMMENT="Per-user watch attempts for FastPix Video activities">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="activity_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="asset_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Snapshot of local_fastpix_asset.id at session start."/>
+        <FIELD NAME="session_token" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="HMAC-bound session token (S1)."/>
+        <FIELD NAME="session_start_ts" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="last_callback_ts" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="seek_count" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="watched_intervals" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="JSON [[start,end],...] of watched ranges, sorted non-overlapping. Phase D coverage-based completion."/>
+        <FIELD NAME="current_position" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" DECIMALS="3" COMMENT="Last playback position (seconds), for resume."/>
+        <FIELD NAME="has_completed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Sticky 0/1; once 1, completion and grade are never re-fired."/>
+        <FIELD NAME="fraud_count" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="last_fraud_reason" TYPE="char" LENGTH="32" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="completion_state" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="in_progress" SEQUENCE="false"/>
+        <FIELD NAME="milestone_25_at" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="milestone_50_at" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="milestone_75_at" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="milestone_100_at" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="fk_activity" TYPE="foreign" FIELDS="activity_id" REFTABLE="fastpix" REFFIELDS="id"/>
+        <KEY NAME="uk_user_activity" TYPE="unique" FIELDS="userid, activity_id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_fastpix_attempt_activity_state" UNIQUE="false" FIELDS="activity_id, completion_state"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

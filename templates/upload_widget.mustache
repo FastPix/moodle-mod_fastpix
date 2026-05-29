@@ -1,0 +1,103 @@
+{{!
+    @template mod_fastpix/upload_widget
+
+    Video source surfaces: a standalone dashed dropzone on top and a URL
+    upload row below. Both inputs are visible at once — no pill toggle, no
+    outer gradient frame. The lavender intro card is rendered server-side
+    in mod_form.php, above this widget. AMD writes source_type into the
+    hidden mform field based on which surface the user touched.
+
+    Hard contract (consumed by amd/build/upload_widget.min.js):
+      [data-region="fastpix-upload-widget"]   — outer wrapper from mod_form
+      [data-region="fastpix-upload-picker"]   — widget root
+      [data-region="fastpix-upload-dropzone"] — dashed drop target
+      [data-region="fastpix-upload-input"]    — the ONLY file input
+      [data-region="fastpix-upload-progress"] — progress region (hidden)
+      [data-region="fastpix-upload-bar"]      — native progress (a11y target)
+      [data-region="fastpix-upload-bar-fill"] — visible fill div
+      [data-region="fastpix-upload-percent"]
+      [data-region="fastpix-upload-status"]   — error / success message
+      [data-region="fastpix-urlpull-status"]  — URL pull status line
+      [name="source_url"]                     — visible URL input
+      [name="validate_url"]                   — URL Upload button
+
+    Styling lives in mod/fastpix/styles.css (.fastpix-vs-*). The dropzone uses
+    the file-input-overlay technique: a transparent file input fills the box so
+    drag-and-drop and click both work. Icons are inline SVG (stroke=currentColor)
+    so colour comes from CSS — never FontAwesome/Tabler glyph names.
+
+    Example context (json):
+    {
+    }
+}}
+<div class="fastpix-vs" data-region="fastpix-upload-picker">
+
+    {{! Standalone dashed dropzone. Clickable surface AND a real drop target.
+        "Browse" is a separate link sitting above the transparent file input
+        (z-index) so it keeps the underlined-violet affordance. }}
+    <div class="fastpix-vs-dropzone"
+         data-region="fastpix-upload-dropzone"
+         tabindex="0"
+         aria-label="{{#str}}videosource_dropzone_text_before, mod_fastpix{{/str}}">
+        <input type="file"
+               accept="video/*"
+               class="fastpix-vs-input"
+               data-region="fastpix-upload-input" />
+        <div class="fastpix-vs-dropzone-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 16l-4-4-4 4"/><path d="M12 12v9"/>
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+            </svg>
+        </div>
+        <p class="fastpix-vs-dropzone-text">
+            <span>{{#str}}videosource_dropzone_text_before, mod_fastpix{{/str}}</span>
+            <a href="#"
+               data-action="fastpix-browse-trigger"
+               class="fastpix-vs-browse">{{#str}}videosource_dropzone_browse, mod_fastpix{{/str}}</a>
+        </p>
+        <p class="fastpix-vs-dropzone-meta">
+            {{#str}}videosource_dropzone_meta, mod_fastpix{{/str}}
+        </p>
+    </div>
+
+    {{! Live progress region — replaces the dropzone visual during upload. }}
+    <div class="fastpix-vs-progress" data-region="fastpix-upload-progress" hidden>
+        <div class="fastpix-vs-progress-head">
+            <span>{{#str}}upload_in_progress, mod_fastpix{{/str}}</span>
+            <span data-region="fastpix-upload-percent">0%</span>
+        </div>
+        <div class="fastpix-vs-progress-track">
+            <div class="fastpix-vs-progress-fill" data-region="fastpix-upload-bar-fill"></div>
+        </div>
+        <progress value="0" max="100"
+                  data-region="fastpix-upload-bar"
+                  class="fastpix-vs-progress-native"></progress>
+    </div>
+
+    {{! Inline status (errors red, success green). }}
+    <div class="fastpix-vs-status"
+         data-region="fastpix-upload-status"
+         role="status"
+         aria-live="polite"
+         hidden></div>
+
+    {{! Or upload using video URL — single horizontal row. }}
+    <p class="fastpix-vs-url-label">
+        {{#str}}videosource_urlpull_label, mod_fastpix{{/str}}
+    </p>
+    <div class="fastpix-vs-url-row">
+        <input type="url"
+               name="source_url"
+               class="form-control fastpix-vs-url-input"
+               placeholder="{{#str}}videosource_urlpull_placeholder, mod_fastpix{{/str}}"
+               autocomplete="off"
+               spellcheck="false" />
+        <button type="button"
+                name="validate_url"
+                class="btn fastpix-vs-url-btn">
+            {{#str}}videosource_urlpull_button, mod_fastpix{{/str}}
+        </button>
+    </div>
+    <div data-region="fastpix-urlpull-status" class="fastpix-vs-url-status"></div>
+</div>

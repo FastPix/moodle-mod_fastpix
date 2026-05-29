@@ -1,0 +1,84 @@
+{{!
+    @template mod_fastpix/processing
+
+    Asset is uploading or transcoding. The poller AMD module polls
+    mod_fastpix_get_player_state and, when the asset goes ready, swaps the
+    CONTENTS of [data-region="fastpix-processing"] in place (node.replaceChildren)
+    with the rendered mod_fastpix/player_wrapper. A meta-refresh in <head>
+    (set in view.php) is the JS-free fallback.
+
+    SWAP CONTRACT (critical):
+      The root [data-region="fastpix-processing"] is a PLAIN container with NO
+      framing of its own. The dark 16:9 loader frame is a CHILD inside it, so
+      replaceChildren() cleanly drops the frame and drops in the player wrapper.
+      Do NOT move framing onto the root, or the swap inherits stale chrome.
+
+    Hard contract:
+      [data-region="fastpix-processing"] with data-cm-id, data-activity-id,
+      and data-upload-session-id (when set).
+      [data-region="fastpix-processing-fallback"] hidden by default.
+      The inline-JS block inits mod_fastpix/processing_state_poller via
+      init(cm_id, upload_session_id).
+      String helpers: processing_title / processing_message /
+      processing_progress_aria / processing_max_polls.
+
+    Context variables:
+      * activity_id        int
+      * cm_id              int
+      * upload_session_id  int|null
+      * activity_name      string
+
+    Design: a DARK charcoal 16:9 frame matching the player canvas, with the same
+    border-radius (14px) + elevation as .mod_fastpix-player-wrapper, plus a faint
+    brand-pink glow so the processing screen reads as premium and the
+    processing -> player swap feels seamless. Self-contained dark, so it reads
+    correctly on both light and dark page themes. Brand colour: #ec1e5b.
+
+    NOTE: never write a curly-brace pair inside this comment block. Mustache
+    treats the first closing pair it sees as the comment terminator and leaks the
+    remainder as literal text, which breaks the client-side swap (a stray leading
+    text node is parsed by jQuery as a CSS selector and throws).
+
+    Example context (json):
+    {
+        "activity_id": 1,
+        "cm_id": 2,
+        "upload_session_id": 3,
+        "activity_name": "Welcome video"
+    }
+}}
+<div class="mod_fastpix-processing"
+     data-region="fastpix-processing"
+     data-cm-id="{{cm_id}}"
+     data-activity-id="{{activity_id}}"
+     {{#upload_session_id}}data-upload-session-id="{{upload_session_id}}"{{/upload_session_id}}>
+
+
+    <div class="fastpix-prep-frame">
+        <div class="fastpix-prep-spinner"
+             role="progressbar"
+             aria-label="{{#str}}processing_progress_aria, mod_fastpix{{/str}}"
+             aria-busy="true"></div>
+
+        <h1 class="fastpix-prep-title">
+            {{#str}}processing_title, mod_fastpix{{/str}}
+        </h1>
+        <p class="fastpix-prep-lede">
+            {{#str}}processing_message, mod_fastpix{{/str}}
+        </p>
+
+        <p data-region="fastpix-processing-fallback"
+           class="fastpix-prep-fallback"
+           hidden>
+            {{#str}}processing_max_polls, mod_fastpix{{/str}}
+        </p>
+    </div>
+</div>
+
+{{#js}}
+require(['mod_fastpix/processing_state_poller'], function(Poller) {
+    if (Poller && typeof Poller.init === 'function') {
+        Poller.init({{cm_id}}, {{#upload_session_id}}{{upload_session_id}}{{/upload_session_id}}{{^upload_session_id}}null{{/upload_session_id}});
+    }
+});
+{{/js}}

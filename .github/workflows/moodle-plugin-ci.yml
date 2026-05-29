@@ -1,0 +1,111 @@
+name: moodle-plugin-ci
+
+on:
+  push:
+    branches: [main, 'stable-*']
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-22.04
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MYSQL_USER: 'root'
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
+          MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+        moodle-branch: ['MOODLE_405_STABLE']
+        database: ['mariadb']
+
+    steps:
+      - name: Check out plugin
+        uses: actions/checkout@v4
+        with:
+          path: plugin
+
+      # mod_fastpix depends on local_fastpix (version.php). moodle-plugin-ci
+      # needs the dependency present at install time or validate/phpunit fail.
+      # Checked out into a sibling dir and passed via --extra-plugins.
+      - name: Check out local_fastpix dependency
+        uses: actions/checkout@v4
+        with:
+          repository: FastPix/moodle-local_fastpix
+          path: extra/local_fastpix
+          ref: main
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pgsql, mysqli, gd, zip, soap, intl, xmlrpc
+          ini-values: max_input_vars=5000
+          coverage: pcov
+
+      - name: Initialise moodle-plugin-ci
+        run: |
+          composer create-project -n --no-dev --prefer-dist \
+            moodlehq/moodle-plugin-ci ci ^4
+          echo "$(cd ci/bin && pwd)" >> $GITHUB_PATH
+          echo "$(cd ci/vendor/bin && pwd)" >> $GITHUB_PATH
+          sudo locale-gen en_AU.UTF-8
+
+      - name: Install Moodle + plugins
+        run: moodle-plugin-ci install --plugin ./plugin --extra-plugins ./extra --db-host=127.0.0.1
+        env:
+          DB: ${{ matrix.database }}
+          MOODLE_BRANCH: ${{ matrix.moodle-branch }}
+
+      - name: PHP lint
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phplint
+
+      - name: PHP copy/paste detector
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpcpd
+
+      - name: PHP mess detector
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpmd
+
+      - name: Moodle code checker
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci codechecker --max-warnings 0
+
+      - name: Validate plugin
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci validate
+
+      - name: Check upgrade savepoints
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci savepoints
+
+      - name: Mustache lint
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci mustache
+
+      # NOTE: no `grunt` step. mod_fastpix's amd/build/*.min.js are
+      # hand-written AMD wrappers (the dev env lacks grunt amd); they are not
+      # grunt output and `moodle-plugin-ci grunt` would report them as stale.
+
+      - name: PHPUnit
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpunit --fail-on-warning
+
+      - name: Behat
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci behat --profile chrome

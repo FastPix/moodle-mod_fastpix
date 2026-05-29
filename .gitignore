@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# .gitignore for the FastPix Moodle activity plugin (mod_fastpix)
+# ---------------------------------------------------------------------------
+
+# --- Operating system files ------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- Editor / IDE files ----------------------------------------------------
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+*.swp
+*.swo
+*~
+.project
+.buildpath
+.settings/
+nbproject/
+*.iml
+
+# --- Node / front-end tooling (Grunt build deps) ---------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.eslintcache
+.stylelintcache
+package-lock.json
+# NOTE: amd/build/*.min.js are intentionally NOT ignored.
+# Moodle serves the compiled AMD modules, so they must stay tracked.
+
+# --- PHP / Composer ---------------------------------------------------------
+vendor/
+composer.phar
+.php_cs.cache
+.php-cs-fixer.cache
+
+# --- PHPUnit / Behat / test artifacts --------------------------------------
+.phpunit.result.cache
+phpunit.result.cache
+/tests/coverage/
+/coverage/
+*.cov
+
+# --- Logs and temporary files ----------------------------------------------
+*.log
+*.tmp
+*.bak
+*.orig
+*.cache
+*.pid
+
+# --- Environment / secrets --------------------------------------------------
+.env
+.env.*
+*.local

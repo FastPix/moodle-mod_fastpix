@@ -1,0 +1,740 @@
+/* mod_fastpix — activity form playback options panel + brand icon overrides
+ * + overlaid "Completed" indicator.
+ * Visual styles only; data plumbing stays in mod_form.php / lib.php / view.php. */
+
+/* ---- Completed indicator (overlaid top-right inside the player) ---- *
+ * The single watch-status UI, and the ONLY thing it ever shows is "Completed".
+ * Hidden by default; the .is-complete class on the root node reveals it. The
+ * coverage tracker in player.js adds .is-complete once (sticky) when the
+ * completion threshold is crossed. It's a green success pill (rounded-full
+ * backdrop at ~0.9 alpha) with a white inline-SVG check + white "Completed"
+ * text. The check is INLINE SVG (zero font dependency: a missing icon-font
+ * glyph can never render a square). Sits top-right, clear of the bottom
+ * control bar. */
+
+.mod_fastpix-status-complete {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 5;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    max-width: calc(100% - 24px);
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    /* Green (Moodle success) pill backdrop at ~0.9 alpha with white check +
+     * text. Uses an explicit success-green rgba (Boost doesn't expose --success
+     * as an rgb triple, so a var()-based alpha can't be relied on here). A soft
+     * drop-shadow lifts the pill off the dark video. */
+    color: #ffffff;
+    background-color: rgba(31, 122, 58, 0.9);
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+
+/* Revealed only on completion (sticky). */
+.mod_fastpix-status-complete.is-complete {
+    display: inline-flex;
+}
+
+/* Inline-SVG check sizing. Uses stroke (the path sets fill="none" inline).
+ * Inherits the white currentColor from the pill. */
+.mod_fastpix-status-svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+}
+
+.mod_fastpix-status-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+    .mod_fastpix-status-complete {
+        top: 8px;
+        right: 8px;
+        padding: 5px 10px;
+        font-size: 0.8125rem;
+        max-width: calc(100% - 16px);
+    }
+}
+
+/* ---- Student view: description lede + premium player frame ---- *
+ * On-screen order is title (activity header) → description lede → player.
+ * Colours are driven by Bootstrap/theme tokens so light + dark both work;
+ * we only hardcode the player-frame shadow alpha (a neutral elevation that
+ * reads correctly on any theme surface). */
+
+/* Description block — rendered manually BELOW the player (the header
+ * description is suppressed in view.php). A clean, readable block: no card
+ * chrome / bordered box, comfortable size and measure. Sits in the flow under
+ * the player (the player frame already carries the gap via its margin-bottom). */
+.mod_fastpix-lede {
+    margin: 0 0 1.5rem 0;
+    padding: 1rem 1.25rem;
+    background-color: rgba(0, 0, 0, 0.035);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    color: var(--body-color, inherit);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+}
+/* Dark themes: a subtle light-on-dark surface instead of the dark-on-light one
+ * (Moodle dark mode marks the page with data-bs-theme="dark"; also honour the
+ * OS preference as a fallback). */
+[data-bs-theme="dark"] .mod_fastpix-lede {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.10);
+}
+@media (prefers-color-scheme: dark) {
+    .mod_fastpix-lede {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.10);
+    }
+}
+/* Strip any generalbox/box chrome format_module_intro or filters may add. */
+.mod_fastpix-lede .box,
+.mod_fastpix-lede .generalbox {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+}
+.mod_fastpix-lede p {
+    margin: 0 0 0.5rem 0;
+}
+.mod_fastpix-lede p:last-child {
+    margin-bottom: 0;
+}
+
+/* Premium player frame. The inline style on the wrapper carries
+ * position:relative, width:100%, aspect-ratio:16/9 and background:#000 (the
+ * black canvas while the player loads); we layer the framing on top: a
+ * rounded corner, a hairline ring, and a tasteful elevation shadow. */
+.mod_fastpix-player-wrapper {
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 0 0 1.5rem 0;
+    /* Hairline ring + soft elevation. Subtle in light themes. */
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.06),
+        0 4px 24px -8px rgba(0, 0, 0, 0.18);
+}
+
+/* Deeper, warmer elevation on dark themes; the hairline becomes a light ring
+ * so the frame edge reads against a dark page surface. */
+@media (prefers-color-scheme: dark) {
+    .mod_fastpix-player-wrapper {
+        box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.08),
+            0 8px 32px -8px rgba(0, 0, 0, 0.6);
+    }
+}
+[data-bs-theme="dark"] .mod_fastpix-player-wrapper {
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 8px 32px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* Mobile — full width, smaller radius, lighter shadow, smaller description. */
+@media (max-width: 480px) {
+    .mod_fastpix-lede {
+        font-size: 1rem;
+    }
+    .mod_fastpix-player-wrapper {
+        border-radius: 10px;
+        margin-bottom: 1.25rem;
+        box-shadow:
+            0 0 0 1px rgba(0, 0, 0, 0.06),
+            0 2px 12px -6px rgba(0, 0, 0, 0.16);
+    }
+}
+
+/* Activity icon brand colours. Moodle 4.x paints the purpose tint as a
+ * CSS background-color on the icon container and renders monologo.svg
+ * as a mask-image overlay — the fill colours inside the SVG are
+ * invisible. Workaround: replace the container's background with the
+ * full-colour brand SVG (inlined as a data URL) and hide the masked img. */
+.activityiconcontainer:has(img[src*="image.php"][src*="/fastpix/"]),
+.activityiconcontainer.modtype_fastpix,
+.activityiconcontainer.fastpix,
+[data-modulename="fastpix"] .activityiconcontainer,
+[data-internal="fastpix"] .activityiconcontainer,
+.modicon_fastpix,
+img.modicon_fastpix {
+    background-color: transparent !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 494 433'><path fill-rule='evenodd' clip-rule='evenodd' d='M41.9325 1.64899C41.9325 1.64899 10.5897 1.09241 1.33147 33.2814C1.33147 33.2814 -3.29762 53.5038 4.70686 67.3256L273.58 103.874C273.58 103.874 289.204 104.524 287.95 122.52C287.95 122.52 285.539 136.434 271.844 136.342L53.6982 150.163L146.666 306.748L246.481 203.688C246.481 203.688 254.485 193.577 269.337 201.276C269.337 201.276 281.199 210.367 274.448 222.333L181.384 365.097L208.484 413.797C208.484 413.797 223.143 433.834 248.603 432.443C248.603 432.443 274.159 432.814 289.686 406.469L488.351 65.7486C488.351 65.7486 503.396 35.9715 483.24 15.4708C483.24 15.4708 470.028 -1.22668 446.014 0.0720112L41.9325 1.64899Z' fill='%2314CC80'/><path d='M97.767 224.282L475.617 77.7159C475.617 77.7159 493.748 68.6251 493.748 37.5493C493.748 37.5493 493.748 10.0913 458.548 1.00049L41.9285 1.64983C41.9285 1.64983 -12.1406 5.15676 5.31496 66.659L279.17 105.127C279.17 105.127 300.001 111.482 279.17 136.064L53.6941 150.164L97.767 224.282Z' fill='%2330F2A2'/></svg>") !important;
+    /* Match Moodle's stock activity-chooser icon size (~32px). The other
+     * core modules render their monologo at this size via Boost's
+     * .activityiconcontainer img { max-width: 32px; max-height: 32px; }. */
+    background-size: 32px 32px !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    mask: none !important;
+    -webkit-mask: none !important;
+}
+
+/* Hide the masked img overlay so only the brand background shows. */
+.activityiconcontainer:has(img[src*="image.php"][src*="/fastpix/"]) img,
+.activityiconcontainer.modtype_fastpix img,
+[data-modulename="fastpix"] .activityicon,
+[data-internal="fastpix"] .activityicon {
+    opacity: 0 !important;
+}
+
+/* Also catch any standalone img usages (legacy templates, breadcrumbs).
+ * Strip the mask + filter so the SVG's own fills show through. */
+img[src*="/mod/fastpix/pix/"],
+img[src*="mod_fastpix"][src*="monologo"],
+img[src*="mod_fastpix"][src*="icon"] {
+    mask: none !important;
+    -webkit-mask: none !important;
+    filter: none !important;
+}
+
+.fastpix-pb-intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #fbe4ee 0%, #fdeef1 100%);
+    border: 1px solid #f3d9e5;
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+.fastpix-pb-intro-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: #fbd7e6;
+    color: #db2777;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.fastpix-pb-intro-icon svg {
+    width: 26px;
+    height: 26px;
+}
+.fastpix-pb-intro-body {
+    flex: 1;
+}
+.fastpix-pb-intro-body .fastpix-pb-intro-title {
+    margin: 0 0 4px 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.35;
+}
+.fastpix-pb-intro-body .fastpix-pb-intro-desc {
+    margin: 0;
+    color: #6b7280;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+}
+
+.fastpix-pb-options {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+.fastpix-pb-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+        "icon label check"
+        "icon desc  check";
+    column-gap: 16px;
+    align-items: center;
+    padding: 16px 20px;
+}
+.fastpix-pb-row + .fastpix-pb-row {
+    border-top: 1px solid #f3f4f6;
+}
+.fastpix-pb-row-icon {
+    grid-area: icon;
+    color: #6b7280;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.fastpix-pb-row-icon svg {
+    width: 18px;
+    height: 18px;
+}
+.fastpix-pb-row-label {
+    grid-area: label;
+    align-self: end;
+    font-weight: 700;
+    color: #111827;
+    font-size: 1.0625rem;
+}
+.fastpix-pb-row-check {
+    grid-area: check;
+    justify-self: end;
+    align-self: center;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+.fastpix-pb-row-check input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #db2777;
+    cursor: pointer;
+    margin: 0;
+    outline: none;
+    box-shadow: none;
+}
+.fastpix-pb-row-check input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: none;
+}
+/* Keyboard users still get a visible focus ring (accessibility). */
+.fastpix-pb-row-check input[type="checkbox"]:focus-visible {
+    outline: 2px solid #db2777;
+    outline-offset: 2px;
+}
+.fastpix-pb-row-desc {
+    grid-area: desc;
+    align-self: start;
+    margin-top: 2px;
+    color: #6b7280;
+    font-size: 0.9375rem;
+}
+
+/* Responsive — on narrow viewports collapse to a 2-column grid: icon + label
+ * stay on the top row with the checkbox on the right; the description wraps to
+ * a full-width row beneath, aligned under the label. */
+@media (max-width: 720px) {
+    .fastpix-pb-row {
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            "icon label check"
+            "icon desc  desc";
+    }
+    .fastpix-pb-row-desc {
+        align-self: start;
+    }
+}
+
+/* ---- Video source section (activity edit form) ----
+ * Three stacked blocks under the "Video source" fieldset header:
+ *   1. .fastpix-vs-intro      — lavender intro card (rendered in mod_form.php)
+ *   2. .fastpix-vs-dropzone   — standalone dashed dropzone (mustache)
+ *   3. .fastpix-vs-url-row    — URL input + violet Upload button (mustache)
+ * Accent violet = #7c3aed. Icons are inline SVG with stroke=currentColor, so
+ * colour is driven from here. Light is the reference; Boost dark gets
+ * theme-aware overrides at the bottom of this block. */
+
+/* Widget root — give the whole block breathing room below so the form's
+ * section divider (the line before "Player behaviour") doesn't sit right
+ * against the URL input/status. */
+.fastpix-vs {
+    margin-bottom: 1.5rem;
+}
+
+/* 1. Intro card. */
+.fastpix-vs-intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f1ecfb 0%, #f6eef7 100%);
+    border: 1px solid rgba(124, 58, 237, 0.12);
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+.fastpix-vs-intro-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(124, 58, 237, 0.12);
+    color: #7c3aed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.fastpix-vs-intro-icon svg {
+    width: 22px;
+    height: 22px;
+}
+.fastpix-vs-intro-body {
+    flex: 1;
+    min-width: 0;
+}
+.fastpix-vs-intro-title {
+    margin: 0 0 4px 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--body-color, #1d2125);
+    line-height: 1.35;
+}
+.fastpix-vs-intro-desc {
+    margin: 0;
+    color: var(--text-muted, #6c757d);
+    font-size: 0.875rem;
+    line-height: 1.55;
+}
+
+/* 2. Dropzone — standalone dashed box on the form background (no gradient
+ * frame). The transparent file input overlays the whole box so click +
+ * drag-and-drop both work. */
+.fastpix-vs-dropzone {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 130px;
+    padding: 1.5rem;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+.fastpix-vs-dropzone.is-dragging {
+    border-color: #7c3aed;
+    background: rgba(124, 58, 237, 0.04);
+}
+.fastpix-vs-dropzone:focus,
+.fastpix-vs-dropzone:focus-within {
+    outline: 3px solid rgba(124, 58, 237, 0.18);
+    outline-offset: 2px;
+}
+.fastpix-vs-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 1;
+}
+.fastpix-vs-dropzone-icon {
+    color: #7c3aed;
+    margin-bottom: 8px;
+    line-height: 0;
+}
+.fastpix-vs-dropzone-icon svg {
+    width: 28px;
+    height: 28px;
+}
+.fastpix-vs-dropzone-text {
+    margin: 0 0 6px 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--body-color, #1d2125);
+}
+.fastpix-vs-browse {
+    color: #7c3aed;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+}
+.fastpix-vs-browse:hover,
+.fastpix-vs-browse:focus {
+    color: #6d28d9;
+}
+.fastpix-vs-dropzone-meta {
+    margin: 0;
+    color: var(--text-muted, #6c757d);
+    font-size: 0.8125rem;
+}
+
+/* Upload progress (replaces the dropzone visual during upload). */
+.fastpix-vs-progress {
+    margin-top: 12px;
+}
+.fastpix-vs-progress-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted, #6c757d);
+}
+.fastpix-vs-progress-track {
+    height: 6px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+}
+.fastpix-vs-progress-fill {
+    background-color: #7c3aed;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    transition: width .15s linear;
+}
+.fastpix-vs-progress-native {
+    appearance: none;
+    height: 0;
+    width: 0;
+    opacity: 0;
+    position: absolute;
+}
+
+/* Inline status line. AMD swaps in alert-success / alert-danger classes. */
+.fastpix-vs-status {
+    margin-top: 12px;
+    font-size: 0.875rem;
+}
+
+/* 3. URL row. */
+.fastpix-vs-url-label {
+    margin: 16px 0 8px 0;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--body-color, #1d2125);
+}
+.fastpix-vs-url-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 12px;
+}
+.fastpix-vs-url-input {
+    flex: 1 1 16rem;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9375rem;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+/* No blue Bootstrap glow; keep the input shape stable on focus. */
+.fastpix-vs-url-input:focus,
+.fastpix-vs-url-input:focus-visible,
+.fastpix-vs-url-input:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: #7c3aed !important;
+}
+/* Solid violet in EVERY state — !important so Moodle/Bootstrap's .btn base
+ * (which otherwise leaves the unclicked button white/transparent) can't win.
+ * Same violet hue throughout; only the SHADE deepens by state:
+ *   unclicked #7c3aed → hover/focus #6d28d9 → pressed #5b21b6.
+ * Focus shows a violet ring, not Bootstrap's blue glow. */
+.fastpix-vs-url-btn {
+    background-color: #7c3aed !important;
+    border: 1px solid #7c3aed !important;
+    color: #fff !important;
+    border-radius: 8px;
+    padding: 8px 22px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: none !important;
+}
+.fastpix-vs-url-btn:hover,
+.fastpix-vs-url-btn:focus {
+    background-color: #6d28d9 !important;
+    border-color: #6d28d9 !important;
+    color: #fff !important;
+}
+.fastpix-vs-url-btn:focus-visible {
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35) !important;
+    outline: none !important;
+}
+.fastpix-vs-url-btn:active {
+    background-color: #5b21b6 !important;
+    border-color: #5b21b6 !important;
+    color: #fff !important;
+}
+.fastpix-vs-url-btn:disabled {
+    opacity: 0.65;
+}
+.fastpix-vs-url-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--text-muted, #6c757d);
+}
+.fastpix-vs-url-status:empty {
+    display: none;
+}
+.fastpix-vs-url-status::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.fastpix-vs-url-status--muted {
+    color: var(--text-muted, #6c757d);
+}
+.fastpix-vs-url-status--success {
+    color: var(--success, #1f7a3a);
+}
+.fastpix-vs-url-status--danger {
+    color: var(--danger, #dc2626);
+}
+.fastpix-vs-url-status--warning {
+    color: var(--warning, #b45309);
+}
+
+/* Boost dark theme: keep the lavender card + white dropzone readable.
+ * The card stays a tinted-violet surface; the dropzone becomes a subtle
+ * dark surface with a light dashed edge; text lightens. */
+[data-bs-theme="dark"] .fastpix-vs-intro {
+    background: rgba(124, 58, 237, 0.16);
+    border-color: rgba(124, 58, 237, 0.35);
+}
+[data-bs-theme="dark"] .fastpix-vs-intro-icon {
+    background: rgba(124, 58, 237, 0.28);
+    color: #c4b5fd;
+}
+[data-bs-theme="dark"] .fastpix-vs-intro-title,
+[data-bs-theme="dark"] .fastpix-vs-url-label,
+[data-bs-theme="dark"] .fastpix-vs-dropzone-text {
+    color: #f3f4f6;
+}
+[data-bs-theme="dark"] .fastpix-vs-intro-desc,
+[data-bs-theme="dark"] .fastpix-vs-dropzone-meta,
+[data-bs-theme="dark"] .fastpix-vs-progress-head {
+    color: #9ca3af;
+}
+[data-bs-theme="dark"] .fastpix-vs-url-status,
+[data-bs-theme="dark"] .fastpix-vs-url-status--muted {
+    color: #9ca3af;
+}
+[data-bs-theme="dark"] .fastpix-vs-url-status--success {
+    color: #4ade80;
+}
+[data-bs-theme="dark"] .fastpix-vs-url-status--danger {
+    color: #f87171;
+}
+[data-bs-theme="dark"] .fastpix-vs-url-status--warning {
+    color: #fbbf24;
+}
+[data-bs-theme="dark"] .fastpix-vs-dropzone {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+[data-bs-theme="dark"] .fastpix-vs-dropzone.is-dragging {
+    border-color: #a78bfa;
+    background: rgba(124, 58, 237, 0.12);
+}
+[data-bs-theme="dark"] .fastpix-vs-dropzone-icon,
+[data-bs-theme="dark"] .fastpix-vs-browse {
+    color: #a78bfa;
+}
+[data-bs-theme="dark"] .fastpix-vs-url-input {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #f3f4f6;
+}
+[data-bs-theme="dark"] .fastpix-vs-progress-track {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Mobile — blocks stack; URL input + button wrap, button goes full width. */
+@media (max-width: 600px) {
+    .fastpix-vs-intro {
+        padding: 16px;
+        gap: 12px;
+    }
+    .fastpix-vs-dropzone {
+        min-height: 120px;
+        padding: 1.25rem 1rem;
+    }
+    .fastpix-vs-url-btn {
+        flex: 1 1 100%;
+        padding: 8px 20px;
+    }
+}
+
+/* ---- Processing ("Preparing your video") loader ----
+ * Moved out of templates/processing.mustache: a <style> block is invalid as a
+ * child of <div> (mustache-lint HTML validation). Dark 16:9 frame matching the
+ * player canvas; the processing -> player swap reuses this page's stylesheet. */
+.fastpix-prep-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    box-sizing: border-box;
+    margin: 0 0 1.5rem 0;
+    background: #16181d;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 8px 32px -8px rgba(0, 0, 0, 0.6),
+        0 24px 60px -28px rgba(236, 30, 91, 0.30);
+}
+.fastpix-prep-spinner {
+    width: 48px;
+    height: 48px;
+    margin: 0 0 22px;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #ec1e5b;
+    border-radius: 50%;
+    animation: fastpix-prep-spin 0.9s linear infinite;
+}
+@keyframes fastpix-prep-spin {
+    to { transform: rotate(360deg); }
+}
+.fastpix-prep-title {
+    margin: 0 0 8px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #ffffff;
+}
+.fastpix-prep-lede {
+    margin: 0;
+    max-width: 44ch;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.62);
+}
+.fastpix-prep-fallback {
+    margin: 18px 0 0;
+    max-width: 44ch;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.55);
+}
+@media (max-width: 600px) {
+    .fastpix-prep-frame   { padding: 16px; }
+    .fastpix-prep-spinner { width: 40px; height: 40px; margin-bottom: 18px; }
+    .fastpix-prep-title   { font-size: 1.2rem; }
+    .fastpix-prep-lede    { font-size: 0.875rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fastpix-prep-spinner { animation: none; }
+}

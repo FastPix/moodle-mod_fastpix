@@ -1,0 +1,117 @@
+# Changelog
+
+All notable changes to `mod_fastpix` are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows Moodle's `YYYYMMDDNN` convention with a human-readable `release` tag.
+
+---
+
+## [v1.0.0] — 2026-05-14
+
+First production release.
+
+### Added
+
+**Activity module skeleton**
+- `lib.php` with the seven required Moodle callbacks (`fastpix_add_instance`, `fastpix_update_instance`, `fastpix_delete_instance`, `fastpix_supports`, `fastpix_get_coursemodule_info`, `fastpix_grade_item_update`, `fastpix_update_grades`).
+- `db/install.xml` defining two tables (`fastpix`, `fastpix_attempt`).
+- `db/access.php` with five capabilities — `addinstance`, `view`, `viewallattempts`, `graderoverride`, `uploadmedia`.
+
+**Activity form (mod_form.php)**
+- Drag-and-drop upload widget driven by AMD (`mod_fastpix/upload_widget`).
+- URL-pull path — paste a URL, FastPix fetches it server-side.
+- Asset-swap guard — blocks changing the video once any student has watch progress.
+- Per-activity completion threshold field.
+- Two playback toggles — **Disable seeking**, **Show captions by default**.
+- Card-based UI with brand colours for the playback options section.
+
+**Player view (view.php + view.mustache)**
+- FastPix Web Player (`@fastpix/fp-player@1.0.17`) mounted via native ESM import to bypass Moodle's RequireJS conflict with hls.js UMD.
+- Two-bar progress UI under the player — **Position** (current playhead) and **Coverage** (unique seconds watched).
+- Resume support — playback restarts from the last persisted position.
+- Captions auto-enabled when the teacher ticks "Show captions by default"; falls back to tenant default.
+- Processing-state page with meta-refresh + JS poller while the asset is being transcoded.
+
+**Watch tracker (inline in view.php)**
+- Self-contained tracker; no AMD race against the player mount.
+- 10-second heartbeat with `core/ajax`; pagehide / visibilitychange flush via `navigator.sendBeacon`.
+- Interval merge on the client (sorted, non-overlapping); same merge runs server-side.
+- Immediate persist on the 0→1 completion transition so completion and grade write within milliseconds.
+- LocalStorage fallback queue when the server is unreachable.
+
+**Six fraud checks (watch_tracker_service)**
+1. `exceeds_duration` — watched > asset duration.
+2. `exceeds_wall_clock` — watched > (now − session start) + 10s tolerance.
+3. `regression` — claimed coverage < server-persisted coverage.
+4. `implausible_gain` — single-tick gain > elapsed time + 10s tolerance.
+5. `capability_lost` — `mod/fastpix:view` revoked mid-session.
+6. `seek_on_noskip` — forward seek on activities with `no_skip_required = 1`.
+
+All six run on every callback; each violation increments `fraud_count` and records a typed reason. The 10-second tolerance is fixed; changes require an ADR.
+
+**External web services**
+- `mod_fastpix_record_view_progress` — accepts watch intervals + position + seek count; runs fraud checks; updates attempt row; triggers completion + grade on transition.
+- `mod_fastpix_refresh_playback_token` — re-mints a playback JWT before expiry without rebuilding the attempt.
+
+**Custom completion**
+- One rule: `completionwatchedpercent`.
+- Sticky once granted — teachers can raise the threshold without retroactively revoking student completions.
+- Wired through `fastpix_get_coursemodule_info` + `fastpix_get_completion_active_rule_descriptions` for the activity-completion-rules UI.
+
+**Gradebook integration**
+- `fastpix_grade_item_update` / `fastpix_update_grades` callbacks per Moodle convention (M1 bare-name prefix).
+- Grade written exactly once per attempt on the 0→1 completion transition via `grade_update()`. Subsequent callbacks past the threshold are idempotent — no re-write.
+
+**Milestone events**
+- `\mod_fastpix\event\watch_milestone` fires once per `(user, activity, milestone)` pair at 25 / 50 / 75 / 100% coverage.
+- Idempotency enforced by `milestone_*_at` columns + transactional set-and-fire.
+
+**Privacy provider (S10)**
+- Full `\core_privacy\local\metadata\provider` + `request\plugin\provider` + `core_userlist_provider`.
+- Declares every PII column on `mdl_fastpix_attempt`.
+- `session_token` is redacted from data exports; deletes purge attempt rows cleanly.
+
+**Backup / restore (M9)**
+- Activity row + per-user attempt rows backed up; `session_token` omitted (auth material).
+- Restore preserves `fastpix_asset_id` verbatim — cross-account restore shows "Video unavailable" by design (ADR-010).
+- Session tokens minted fresh on first view of the restored activity.
+
+**Activity icon**
+- Brand-coloured FastPix logo as `pix/icon.svg` and `pix/monologo.svg`.
+- CSS in `styles.css` overrides Moodle 4.x's purpose-tint mask so the green brand shows through.
+
+### Architecture
+
+- Three-layer architecture: endpoint (`classes/external/*`, `view.php`, `mod_form.php`) → service (`classes/service/*`) → `local_fastpix` consumer.
+- Zero direct calls to `local_fastpix\api\gateway`, `local_fastpix\service\jwt_signing_service`, or `local_fastpix\webhook\*` — only the four documented consumer services (`asset_service`, `playback_service`, `upload_service`, `feature_flag_service`).
+- Zero HTTP calls of any kind from inside `mod/fastpix/` (CI-verified).
+- Zero `fastpix.io` literals anywhere in `mod/fastpix/` (CI-verified).
+
+### Dependencies
+
+- Moodle 4.5 LTS or newer (`$plugin->requires = 2024100700`).
+- PHP 8.1+.
+- `local_fastpix` v1.0.0 or newer (`$plugin->dependencies = ['local_fastpix' => 2026050801]`).
+
+### Known limitations
+
+- Cross-FastPix-account restore is intentionally unsupported — assets stay with the FastPix tenant that owns them (ADR-010).
+- Widevine L3 screen-recording is unmitigated in v1.0 — same constraint as every browser-based DRM in 2026 (S7).
+- Reconciler for missed webhooks is deferred to year 2 (ADR-003).
+- Per-user watermarking withdrawn (ADR-005).
+
+---
+
+## [v0.x.0-dev] — 2026-05-08 to 2026-05-13
+
+Pre-release development cycle. Five phases (A → E) shipped in sequence:
+
+- **Phase A** — Skeleton: lib.php, install.xml, lang strings, capabilities, version.php.
+- **Phase B** — Activity form: upload widget, URL pull, validation, asset-swap guard.
+- **Phase C** — Player view: ESM player mount, hls.js loader, processing state, error states.
+- **Phase D** — Watch tracking: six fraud checks, completion, gradebook, two-bar UI, resume, milestone events.
+- **Phase E** — Backup/restore + real privacy provider.
+
+The complete per-phase development log lives in `.claude/` alongside the architectural rules.
+
+---
+
+[v1.0.0]: https://github.com/tharunbudidha27/mod-plugin/releases/tag/v1.0.0
