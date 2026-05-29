@@ -88,11 +88,27 @@ export const mount = async(wrapperEl, payload) => {
         el.setAttribute('metadata-video-title', payload.activity_name);
     }
     // Resume from last known position. current_position comes from
-    // mdl_fastpix_attempt.current_position; the player honours start-time at
-    // first metadata.
-    const startTime = payload.current_position;
-    if (startTime && parseFloat(startTime) > 0) {
+    // mdl_fastpix_attempt.current_position. We set start-time (honoured by the
+    // player at first metadata) AND, as a fallback, seek directly once metadata
+    // is ready — some player builds ignore start-time, which left the video
+    // restarting from 0 even though the server returned the right position.
+    const startTime = parseFloat(payload.current_position);
+    if (startTime && startTime > 0) {
         el.setAttribute('start-time', String(startTime));
+        const resumeSeek = function() {
+            try {
+                // Only seek if the player is still at the start (start-time
+                // didn't take) and the position is within the loaded duration.
+                if (Number(el.currentTime || 0) < startTime - 1
+                    && (!isFinite(el.duration) || el.duration > startTime)) {
+                    el.currentTime = startTime;
+                }
+            } catch (e) {
+                // Non-fatal — playback just begins at 0.
+            }
+        };
+        el.addEventListener('loadedmetadata', resumeSeek, {once: true});
+        el.addEventListener('loadeddata', resumeSeek, {once: true});
     }
     el.style.cssText = 'display:block;width:100%;aspect-ratio:16/9;';
     wrapperEl.appendChild(el);
