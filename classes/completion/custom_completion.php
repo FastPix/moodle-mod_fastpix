@@ -115,6 +115,19 @@ class custom_completion extends activity_custom_completion {
      * @return array The ordered rule names.
      */
     public function get_sort_order(): array {
-        return ['completionwatchedpercent'];
+        // Moodle's completion API (cm_completion_details::sort_completion_details)
+        // requires get_sort_order() to list EVERY condition that can apply — the
+        // standard ones enabled via fastpix_supports() (completionview from
+        // FEATURE_COMPLETION_TRACKS_VIEWS; completionusegrade / completionpassgrade
+        // from FEATURE_GRADE_HAS_GRADE) plus the custom completionwatchedpercent
+        // rule. Omitting a standard condition makes Moodle throw a coding_exception
+        // the moment a teacher enables it alongside the watched-% rule. Listing a
+        // condition that isn't enabled is harmless (it's simply skipped).
+        return [
+            'completionview',
+            'completionusegrade',
+            'completionpassgrade',
+            'completionwatchedpercent',
+        ];
     }
 }

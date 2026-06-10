@@ -191,12 +191,21 @@ final class custom_completion_test extends \advanced_testcase {
         $this->assertSame(COMPLETION_INCOMPLETE, $cc->get_state('completionwatchedpercent'));
     }
 
-    public function test_get_sort_order_returns_single_rule(): void {
+    public function test_get_sort_order_lists_standard_and_custom_conditions(): void {
         $this->resetAfterTest();
         [$cm, $studentid] = $this->setup_fixture();
 
         $cc = new custom_completion($cm, $studentid);
-        $this->assertSame(['completionwatchedpercent'], $cc->get_sort_order());
+        // Must include the standard conditions this activity supports plus the
+        // custom rule, or Moodle throws when a teacher enables a standard one.
+        $this->assertSame([
+            'completionview',
+            'completionusegrade',
+            'completionpassgrade',
+            'completionwatchedpercent',
+        ], $cc->get_sort_order());
+        // The custom rule set itself stays exactly one (CG3).
+        $this->assertSame(['completionwatchedpercent'], $cc::get_defined_custom_rules());
     }
 
     public function test_get_custom_rule_descriptions_returns_one_entry(): void {
