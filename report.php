@@ -28,9 +28,9 @@
 require_once(__DIR__ . '/../../config.php');
 
 $id       = required_param('id', PARAM_INT);            // Course module id.
-$mode     = optional_param('mode', 'video', PARAM_ALPHA); // 'video' | 'user'.
+$mode     = optional_param('mode', 'video', PARAM_ALPHA); // Report mode: video or user.
 $userid   = optional_param('userid', 0, PARAM_INT);     // Target student (user mode).
-$download = optional_param('download', '', PARAM_ALPHA); // '' | 'csv'.
+$download = optional_param('download', '', PARAM_ALPHA); // Export format: empty, or csv.
 
 $cm       = get_coursemodule_from_id('fastpix', $id, 0, false, MUST_EXIST);
 $course   = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);

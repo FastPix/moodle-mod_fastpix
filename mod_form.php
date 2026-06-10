@@ -265,7 +265,8 @@ class mod_fastpix_mod_form extends moodleform_mod {
             . '1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 '
             . '4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 '
             . '0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 '
-            . '1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+            . '1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 '
+            . '1.65 0 0 0-1.51 1z"/></svg>';
         $mscard = html_writer::div(
             html_writer::div($msicon, 'fastpix-ms-ico')
             . html_writer::div(
@@ -304,10 +305,10 @@ class mod_fastpix_mod_form extends moodleform_mod {
             }
         }
 
-        // --- Access policy: custom-HTML segmented control (read via optional_param). ---
+        // Access policy: custom-HTML segmented control (read via optional_param).
         $mform->addElement('html', $this->render_access_policy_control($currentpolicy));
 
-        // --- Captions & transcript: custom-HTML card. ---
+        // Captions & transcript: custom-HTML card.
         // Prepare a draft file area for the .vtt (loads any stored file on edit);
         // the AMD dropzone uploads into it, and the hidden captionsfile field
         // carries the draft itemid through the normal form submit.

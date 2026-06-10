@@ -26,6 +26,8 @@
 namespace mod_fastpix\report;
 
 /**
+ * Tests for the watch-report aggregation service.
+ *
  * @covers \mod_fastpix\report\watch_report
  */
 final class watch_report_test extends \advanced_testcase {
@@ -68,7 +70,13 @@ final class watch_report_test extends \advanced_testcase {
      * @param array $extra Overrides on the attempt row.
      * @return \stdClass The created user.
      */
-    private function add_attempt(\stdClass $course, \stdClass $activity, int $assetid, array $intervals, array $extra = []): \stdClass {
+    private function add_attempt(
+        \stdClass $course,
+        \stdClass $activity,
+        int $assetid,
+        array $intervals,
+        array $extra = []
+    ): \stdClass {
         global $DB;
         $user = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($user->id, $course->id, 'student');
@@ -104,8 +112,8 @@ final class watch_report_test extends \advanced_testcase {
 
         $this->assertSame(100, $report->duration);
         $this->assertSame(2, $report->viewers);
-        $this->assertSame(75, $report->summary->avgpercent);       // (50 + 100) / 2
-        $this->assertSame(50, $report->summary->completionrate);   // 1 of 2 completed
+        $this->assertSame(75, $report->summary->avgpercent);       // Mean of 50 and 100.
+        $this->assertSame(50, $report->summary->completionrate);   // One of two completed.
         $this->assertCount(2, $report->rows);
     }
 

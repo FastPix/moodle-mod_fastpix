@@ -128,7 +128,7 @@ final class mod_form_test extends \advanced_testcase {
     public function test_validate_rejects_drm_when_not_configured(): void {
         $this->resetAfterTest();
         set_config('feature_drm_enabled', 0, 'local_fastpix');
-        // access_policy is a custom-HTML control; the DRM error surfaces on the
+        // The access_policy control is custom HTML; the DRM error surfaces on the
         // visible 'name' element (it has no mform row of its own).
         $errors = $this->make_form()->validate_fastpix_rules([
             'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
@@ -140,7 +140,7 @@ final class mod_form_test extends \advanced_testcase {
 
     public function test_validate_accepts_drm_when_configured(): void {
         $this->resetAfterTest();
-        // drm_enabled() double-gates on the flag AND a non-empty config id (W12).
+        // The drm_enabled() check double-gates on the flag AND a non-empty config id (W12).
         set_config('feature_drm_enabled', 1, 'local_fastpix');
         set_config('drm_configuration_id', 'cfg_test_123', 'local_fastpix');
         $errors = $this->make_form()->validate_fastpix_rules([

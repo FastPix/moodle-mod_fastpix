@@ -37,6 +37,8 @@ use mod_fastpix\service\asset_lifecycle_service;
 use local_fastpix\service\asset_service;
 
 /**
+ * Tests for the asset reference-counting lifecycle bridge.
+ *
  * @covers \mod_fastpix\service\asset_lifecycle_service
  */
 final class asset_lifecycle_service_test extends \advanced_testcase {
@@ -77,7 +79,12 @@ final class asset_lifecycle_service_test extends \advanced_testcase {
         return $DB->get_record('fastpix', ['id' => $activity->id], '*', MUST_EXIST);
     }
 
-    /** Fetch an asset's FastPix UUID (the key the ref API uses). */
+    /**
+     * Fetch an asset's FastPix UUID (the key the reference API uses).
+     *
+     * @param int $assetid The local asset id.
+     * @return string The FastPix UUID.
+     */
     private function fastpix_id_of(int $assetid): string {
         global $DB;
         return (string)$DB->get_field('local_fastpix_asset', 'fastpix_id', ['id' => $assetid], MUST_EXIST);

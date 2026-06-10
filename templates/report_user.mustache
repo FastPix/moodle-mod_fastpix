@@ -26,6 +26,30 @@
     * downloadurl string
     * hasrows bool
     * rows array
+
+    Example context (json):
+    {
+        "cmid": 42,
+        "studentname": "Jordan Lee",
+        "backurl": "#",
+        "downloadurl": "#",
+        "hasrows": true,
+        "rows": [
+            {
+                "activityname": "Lecture 1",
+                "activityurl": "#",
+                "watchpercent": 88,
+                "watchtime": "5:00",
+                "milestones": "25/50/75%",
+                "completed": true,
+                "lastposition": "5:00",
+                "seeks": 1,
+                "hasfraud": true,
+                "fraudcount": 3,
+                "fraudreason": "exceeds_duration"
+            }
+        ]
+    }
 }}
 <div class="fastpix-report fastpix-report-user" data-cmid="{{cmid}}">
     <div class="d-flex justify-content-between align-items-center mb-3">

@@ -46,7 +46,10 @@ jobs:
         with:
           repository: FastPix/moodle-local_fastpix
           path: extra/local_fastpix
-          ref: main
+          # mod_fastpix 1.1.0 requires local_fastpix's asset reference-counting
+          # API + the new create_upload_session contract, which live on the
+          # matching feature branch (not yet on main).
+          ref: feature/course-video-picker
 
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2

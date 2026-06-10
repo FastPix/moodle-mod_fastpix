@@ -61,44 +61,11 @@ function fastpix_supports($feature) {
  * @return int The id of the newly created activity row.
  */
 function fastpix_add_instance($data, $mform = null) {
-    global $DB, $CFG;
+    global $DB;
 
-    // The two "Player behaviour" toggles are rendered as raw HTML checkboxes
-    // in mod_form.php (for the styled card look), not registered mform elements,
-    // so the real form's get_data() never populates them — there we read the
-    // posted checkbox value. But programmatic callers (the data generator,
-    // restore, Behat) pass the values directly on $data, so honour those first.
-    $noskiprequired = isset($data->no_skip_required)
-        ? ((int)(bool)$data->no_skip_required)
-        : (optional_param('no_skip_required', 0, PARAM_BOOL) ? 1 : 0);
-    $defaultshowcaptions = isset($data->default_show_captions)
-        ? ((int)(bool)$data->default_show_captions)
-        : (optional_param('default_show_captions', 0, PARAM_BOOL) ? 1 : 0);
-
-    // Media settings. access_policy is a custom-HTML control read from POST via
-    // optional_param (programmatic callers may set it on $data); the caption
-    // fields are native mform elements that populate $data directly. Either way
-    // we fall back to conservative defaults.
-    $accesspolicy = isset($data->access_policy)
-        ? $data->access_policy
-        : optional_param('access_policy', 'private', PARAM_ALPHA);
-    if (!in_array($accesspolicy, ['private', 'public', 'drm'], true)) {
-        $accesspolicy = 'private';
-    }
-    $captionsenabled = isset($data->captionsenabled)
-        ? !empty($data->captionsenabled)
-        : (bool)optional_param('captionsenabled', 0, PARAM_BOOL);
-    $rawmode = isset($data->captionsmode)
-        ? $data->captionsmode
-        : optional_param('captionsmode', 'auto', PARAM_ALPHA);
-    $captionsmode = $captionsenabled ? ($rawmode === 'vtt' ? 'vtt' : 'auto') : 'none';
-    $rawlang = isset($data->languagecode)
-        ? $data->languagecode
-        : optional_param('languagecode', '', PARAM_ALPHA);
-    $languagecode = ($captionsmode === 'auto' && $rawlang !== '') ? $rawlang : null;
-    $captionsdraftid = isset($data->captionsfile)
-        ? (int)$data->captionsfile
-        : optional_param('captionsfile', 0, PARAM_INT);
+    // Player-behaviour + media settings are normalised in the shared service.
+    $settings = \mod_fastpix\service\form_settings_service::instance();
+    $resolved = $settings->resolve($data);
 
     $now = time();
     $record = (object) [
@@ -111,11 +78,11 @@ function fastpix_add_instance($data, $mform = null) {
         'completion_watch_percent' => !empty($data->completionwatchedpercentenabled)
             ? (int)$data->completionwatchedpercent
             : 90,
-        'no_skip_required'         => $noskiprequired,
-        'default_show_captions'    => $defaultshowcaptions,
-        'access_policy'            => $accesspolicy,
-        'captions_mode'            => $captionsmode,
-        'language_code'            => $languagecode,
+        'no_skip_required'         => $resolved->noskiprequired,
+        'default_show_captions'    => $resolved->defaultshowcaptions,
+        'access_policy'            => $resolved->accesspolicy,
+        'captions_mode'            => $resolved->captionsmode,
+        'language_code'            => $resolved->languagecode,
         'grademax'                 => isset($data->grade) ? (float)$data->grade : 100,
         'timecreated'              => $now,
         'timemodified'             => $now,
@@ -123,37 +90,7 @@ function fastpix_add_instance($data, $mform = null) {
 
     $id = $DB->insert_record('fastpix', $record);
 
-    // Persist (or clear) the teacher-uploaded .vtt into the activity's captions
-    // filearea. Only available once the course-module exists ($data->coursemodule
-    // is set by core before this callback on the real form path).
-    if (!empty($data->coursemodule)) {
-        require_once($CFG->libdir . '/filelib.php');
-        $modcontext = context_module::instance($data->coursemodule);
-        if ($captionsmode === 'vtt' && $captionsdraftid > 0) {
-            file_save_draft_area_files(
-                $captionsdraftid,
-                $modcontext->id,
-                'mod_fastpix',
-                'captions',
-                0,
-                ['subdirs' => 0, 'accepted_types' => ['.vtt']]
-            );
-            // Enforce a single caption file: keep the newest, drop any extras the
-            // custom dropzone may have left in the draft area.
-            $fs = get_file_storage();
-            $stored = $fs->get_area_files($modcontext->id, 'mod_fastpix', 'captions', 0, 'timemodified DESC', false);
-            $keep = true;
-            foreach ($stored as $storedfile) {
-                if ($keep) {
-                    $keep = false;
-                    continue;
-                }
-                $storedfile->delete();
-            }
-        } else {
-            get_file_storage()->delete_area_files($modcontext->id, 'mod_fastpix', 'captions', 0);
-        }
-    }
+    $settings->save_captions_file($data, $resolved->captionsmode, $resolved->captionsdraftid);
 
     // Create the grade item now (core's edit_module_post_actions only updates
     // existing items — the module is responsible for creating it on add).
@@ -172,39 +109,11 @@ function fastpix_add_instance($data, $mform = null) {
  * @return bool True on success.
  */
 function fastpix_update_instance($data, $mform = null) {
-    global $DB, $CFG;
+    global $DB;
 
-    // See fastpix_add_instance(): the raw-HTML "Player behaviour" checkboxes are
-    // not registered mform elements, so the real form never reaches $data — read
-    // the posted value there. Programmatic callers pass them on $data directly.
-    $noskiprequired = isset($data->no_skip_required)
-        ? ((int)(bool)$data->no_skip_required)
-        : (optional_param('no_skip_required', 0, PARAM_BOOL) ? 1 : 0);
-    $defaultshowcaptions = isset($data->default_show_captions)
-        ? ((int)(bool)$data->default_show_captions)
-        : (optional_param('default_show_captions', 0, PARAM_BOOL) ? 1 : 0);
-
-    // Media settings — see fastpix_add_instance() for the derivation rationale.
-    $accesspolicy = isset($data->access_policy)
-        ? $data->access_policy
-        : optional_param('access_policy', 'private', PARAM_ALPHA);
-    if (!in_array($accesspolicy, ['private', 'public', 'drm'], true)) {
-        $accesspolicy = 'private';
-    }
-    $captionsenabled = isset($data->captionsenabled)
-        ? !empty($data->captionsenabled)
-        : (bool)optional_param('captionsenabled', 0, PARAM_BOOL);
-    $rawmode = isset($data->captionsmode)
-        ? $data->captionsmode
-        : optional_param('captionsmode', 'auto', PARAM_ALPHA);
-    $captionsmode = $captionsenabled ? ($rawmode === 'vtt' ? 'vtt' : 'auto') : 'none';
-    $rawlang = isset($data->languagecode)
-        ? $data->languagecode
-        : optional_param('languagecode', '', PARAM_ALPHA);
-    $languagecode = ($captionsmode === 'auto' && $rawlang !== '') ? $rawlang : null;
-    $captionsdraftid = isset($data->captionsfile)
-        ? (int)$data->captionsfile
-        : optional_param('captionsfile', 0, PARAM_INT);
+    // Player-behaviour + media settings are normalised in the shared service.
+    $settings = \mod_fastpix\service\form_settings_service::instance();
+    $resolved = $settings->resolve($data);
 
     $record = (object) [
         'id'                       => $data->instance,
@@ -214,11 +123,11 @@ function fastpix_update_instance($data, $mform = null) {
         'completion_watch_percent' => !empty($data->completionwatchedpercentenabled)
             ? (int)$data->completionwatchedpercent
             : 90,
-        'no_skip_required'         => $noskiprequired,
-        'default_show_captions'    => $defaultshowcaptions,
-        'access_policy'            => $accesspolicy,
-        'captions_mode'            => $captionsmode,
-        'language_code'            => $languagecode,
+        'no_skip_required'         => $resolved->noskiprequired,
+        'default_show_captions'    => $resolved->defaultshowcaptions,
+        'access_policy'            => $resolved->accesspolicy,
+        'captions_mode'            => $resolved->captionsmode,
+        'language_code'            => $resolved->languagecode,
         'grademax'                 => isset($data->grade) ? (float)$data->grade : 100,
         'timemodified'             => time(),
     ];
@@ -244,35 +153,7 @@ function fastpix_update_instance($data, $mform = null) {
 
     $DB->update_record('fastpix', $record);
 
-    // Persist (or clear) the teacher-uploaded .vtt — mirrors fastpix_add_instance.
-    if (!empty($data->coursemodule)) {
-        require_once($CFG->libdir . '/filelib.php');
-        $modcontext = context_module::instance($data->coursemodule);
-        if ($captionsmode === 'vtt' && $captionsdraftid > 0) {
-            file_save_draft_area_files(
-                $captionsdraftid,
-                $modcontext->id,
-                'mod_fastpix',
-                'captions',
-                0,
-                ['subdirs' => 0, 'accepted_types' => ['.vtt']]
-            );
-            // Enforce a single caption file: keep the newest, drop any extras the
-            // custom dropzone may have left in the draft area.
-            $fs = get_file_storage();
-            $stored = $fs->get_area_files($modcontext->id, 'mod_fastpix', 'captions', 0, 'timemodified DESC', false);
-            $keep = true;
-            foreach ($stored as $storedfile) {
-                if ($keep) {
-                    $keep = false;
-                    continue;
-                }
-                $storedfile->delete();
-            }
-        } else {
-            get_file_storage()->delete_area_files($modcontext->id, 'mod_fastpix', 'captions', 0);
-        }
-    }
+    $settings->save_captions_file($data, $resolved->captionsmode, $resolved->captionsdraftid);
 
     // Keep the grade item in sync with the (possibly changed) name / max grade.
     $record->course = $data->course;
