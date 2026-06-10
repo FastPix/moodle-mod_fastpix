@@ -18,8 +18,25 @@ remains before a v1.0.0 GA tag is **pilot validation** (Phase G) and
   PHP 8.1/8.2/8.3 × MOODLE_405_STABLE, with `local_fastpix` checked out as a
   dependency.
 
-Maturity: `MATURITY_STABLE`, release `1.0.0`, version `2026052900`.
-Depends on `local_fastpix` >= `2026052100`.
+Maturity: `MATURITY_STABLE`, release `1.1.0`, version `2026061010`.
+Depends on `local_fastpix` >= `2026061009`.
+
+## v1.1.0 additions
+
+- **Media settings** on the activity form — access policy (Private / Public /
+  DRM) and captions (auto-generate in a chosen language, or upload a `.vtt`),
+  stored on `mdl_fastpix` and consumed by `local_fastpix`'s
+  `create_upload_session` at upload time.
+- **Watch report** — teacher analytics gated by `mod/fastpix:viewallattempts`:
+  per-video (summary + engagement curve + per-student table) and per-user
+  views, with CSV export. Display-only over `mdl_fastpix_attempt`.
+- **Asset reference counting** — registers/releases a `local_fastpix`
+  reference (`mod_fastpix:<activityid>`) on link / delete / asset-swap; the
+  asset is soft-deleted only at zero references. Fail-safe.
+- **Upload uses the course context** — the upload widget now passes the course
+  context id and forwards `contextid` to `local_fastpix`, so
+  `mod/fastpix:uploadmedia` is enforced at the course (fixing the
+  "teachers can't upload" regression). Uploads are tagged to their course.
 
 ## What works
 

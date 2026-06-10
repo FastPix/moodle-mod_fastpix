@@ -125,6 +125,126 @@ final class mod_form_test extends \advanced_testcase {
         $this->assertEmpty($errors, 'no errors expected on a clean submission');
     }
 
+    public function test_validate_rejects_drm_when_not_configured(): void {
+        $this->resetAfterTest();
+        set_config('feature_drm_enabled', 0, 'local_fastpix');
+        // access_policy is a custom-HTML control; the DRM error surfaces on the
+        // visible 'name' element (it has no mform row of its own).
+        $errors = $this->make_form()->validate_fastpix_rules([
+            'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
+            'access_policy' => 'drm',
+        ]);
+        $this->assertArrayHasKey('name', $errors);
+        $this->assertEquals(get_string('error_drmnotconfigured', 'mod_fastpix'), $errors['name']);
+    }
+
+    public function test_validate_accepts_drm_when_configured(): void {
+        $this->resetAfterTest();
+        // drm_enabled() double-gates on the flag AND a non-empty config id (W12).
+        set_config('feature_drm_enabled', 1, 'local_fastpix');
+        set_config('drm_configuration_id', 'cfg_test_123', 'local_fastpix');
+        $errors = $this->make_form()->validate_fastpix_rules([
+            'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
+            'access_policy' => 'drm',
+        ]);
+        $this->assertArrayNotHasKey('name', $errors);
+    }
+
+    public function test_validate_accepts_public_policy_without_drm_config(): void {
+        $this->resetAfterTest();
+        set_config('feature_drm_enabled', 0, 'local_fastpix');
+        $errors = $this->make_form()->validate_fastpix_rules([
+            'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
+            'access_policy' => 'public',
+        ]);
+        $this->assertArrayNotHasKey('name', $errors);
+    }
+
+    public function test_validate_requires_language_for_auto_captions(): void {
+        $this->resetAfterTest();
+        // Captions controls are custom HTML; their errors surface on 'name'.
+        $errors = $this->make_form()->validate_fastpix_rules([
+            'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
+            'captionsenabled' => 1, 'captionsmode' => 'auto', 'languagecode' => '',
+        ]);
+        $this->assertArrayHasKey('name', $errors);
+        $this->assertEquals(get_string('error_languagerequired', 'mod_fastpix'), $errors['name']);
+    }
+
+    public function test_validate_rejects_unknown_language_for_auto_captions(): void {
+        $this->resetAfterTest();
+        $errors = $this->make_form()->validate_fastpix_rules([
+            'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
+            'captionsenabled' => 1, 'captionsmode' => 'auto', 'languagecode' => 'zz',
+        ]);
+        $this->assertArrayHasKey('name', $errors);
+    }
+
+    public function test_validate_accepts_auto_captions_with_language(): void {
+        $this->resetAfterTest();
+        $errors = $this->make_form()->validate_fastpix_rules([
+            'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
+            'captionsenabled' => 1, 'captionsmode' => 'auto', 'languagecode' => 'en',
+        ]);
+        $this->assertArrayNotHasKey('name', $errors);
+    }
+
+    public function test_validate_requires_vtt_file_when_vtt_mode(): void {
+        $this->resetAfterTest();
+        $errors = $this->make_form()->validate_fastpix_rules([
+            'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
+            'captionsenabled' => 1, 'captionsmode' => 'vtt', 'captionsfile' => 0,
+        ]);
+        $this->assertArrayHasKey('name', $errors);
+        $this->assertEquals(get_string('error_vttrequired', 'mod_fastpix'), $errors['name']);
+    }
+
+    public function test_validate_skips_caption_rules_when_toggle_off(): void {
+        $this->resetAfterTest();
+        $errors = $this->make_form()->validate_fastpix_rules([
+            'source_type' => 'upload', 'upload_session_id' => 1, 'name' => 'x',
+            'captionsenabled' => 0,
+        ]);
+        $this->assertArrayNotHasKey('name', $errors);
+    }
+
+    public function test_add_instance_persists_media_settings(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+
+        $_POST['no_skip_required'] = '0';
+        $_POST['default_show_captions'] = '0';
+        $data = $this->add_instance_data($course->id);
+        $data->access_policy   = 'public';
+        $data->captionsenabled = 1;
+        $data->captionsmode    = 'auto';
+        $data->languagecode    = 'fr';
+        $id = fastpix_add_instance($data);
+        unset($_POST['no_skip_required'], $_POST['default_show_captions']);
+
+        $row = $DB->get_record('fastpix', ['id' => $id], '*', MUST_EXIST);
+        $this->assertEquals('public', $row->access_policy);
+        $this->assertEquals('auto', $row->captions_mode);
+        $this->assertEquals('fr', $row->language_code);
+    }
+
+    public function test_add_instance_defaults_media_settings(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+
+        $_POST['no_skip_required'] = '0';
+        $_POST['default_show_captions'] = '0';
+        $id = fastpix_add_instance($this->add_instance_data($course->id));
+        unset($_POST['no_skip_required'], $_POST['default_show_captions']);
+
+        $row = $DB->get_record('fastpix', ['id' => $id], '*', MUST_EXIST);
+        $this->assertEquals('private', $row->access_policy);
+        $this->assertEquals('none', $row->captions_mode);
+        $this->assertNull($row->language_code);
+    }
+
     /**
      * Build the $data object Moodle hands to fastpix_add_instance. The two
      * player-behaviour flags are deliberately NOT set on $data — they come

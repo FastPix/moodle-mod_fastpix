@@ -64,3 +64,6 @@ phpunit.result.cache
 .env
 .env.*
 *.local
+
+# --- Claude Code workspace ---------------------------------------------------
+.claude/
