@@ -25,17 +25,23 @@ namespace mod_fastpix\service;
  */
 
 /**
- * Asset-lifecycle bridge for the recycle-bin / activity-delete path (Phase E).
+ * Asset-lifecycle bridge to local_fastpix's reference counting.
  *
- * When a mod_fastpix activity is deleted, its referenced FastPix asset should be
- * soft-deleted in local_fastpix ONLY when no other live activity still references
- * the same asset (a single asset can back many activities across courses — M9).
+ * local_fastpix owns the authoritative asset lifecycle: each consumer registers
+ * a reference when it links an asset and releases it when it stops using it; the
+ * asset is soft-deleted by local_fastpix only when the LAST reference is released
+ * (at zero refs). mod_fastpix is one such consumer — this service registers /
+ * releases the reference keyed by 'mod_fastpix:<activityid>'.
  *
- * Reference counting is read-only against this plugin's own mdl_fastpix table (A5
- * forbids only local_fastpix_* mutation; reading mdl_fastpix is in-scope). The
- * mutation itself is delegated to the documented public write API
- * \local_fastpix\service\asset_service::soft_delete(int $id) (CC1) — mod_fastpix
- * never writes local_fastpix_* tables directly and makes zero HTTP calls (A2/A5).
+ * The reference is registered when the asset is actually linked to the activity
+ * (the null -> set backfill in playback_service::resolve_for_view), NOT at form
+ * save — the FastPix asset id is unknown until the upload webhook readies it.
+ *
+ * All calls go through the documented asset_service API (CC1) — mod_fastpix never
+ * writes local_fastpix_* tables directly and makes zero HTTP calls (A2/A5). Every
+ * call is FAIL-SAFE: a missing/throwing service must never break the activity
+ * lifecycle (a save or delete always succeeds), so failures are logged and
+ * swallowed.
  */
 class asset_lifecycle_service {
     /** @var self|null Singleton instance. */
@@ -54,39 +60,63 @@ class asset_lifecycle_service {
     }
 
     /**
-     * Soft-delete the asset backing the given activity, but only when no other
-     * non-deleted activity references the same asset.
+     * The reference consumer key for an activity: 'mod_fastpix:<activityid>'.
      *
-     * Safe to call from fastpix_pre_course_module_delete(): at that point the
-     * activity's own mdl_fastpix row still exists, so it is excluded from the
-     * reference count by primary key.
-     *
-     * @param int $activityid mdl_fastpix.id of the activity being deleted.
+     * @param int $activityid mdl_fastpix.id.
+     * @return string The consumer key.
      */
-    public function soft_delete_if_unreferenced(int $activityid): void {
+    private function consumer_key(int $activityid): string {
+        return 'mod_fastpix:' . $activityid;
+    }
+
+    /**
+     * Register this activity's reference to a (now-linked) FastPix asset.
+     * Idempotent — add_reference dedups, so calling on every resolve is safe and
+     * self-heals activities linked before ref-counting existed.
+     *
+     * @param int $activityid mdl_fastpix.id.
+     * @param string $fastpixid The FastPix asset id (UUID) the activity now uses.
+     */
+    public function register_reference(int $activityid, string $fastpixid): void {
+        if ($fastpixid === '') {
+            return;
+        }
+        try {
+            \local_fastpix\service\asset_service::add_reference($fastpixid, $this->consumer_key($activityid));
+        } catch (\Throwable $e) {
+            // Never let reference bookkeeping break the activity lifecycle.
+            debugging('mod_fastpix: add_reference failed for activity ' . $activityid
+                . ': ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
+     * Release this activity's reference to its linked asset. local_fastpix
+     * decides whether the asset is now unreferenced and soft-deletes it. Resolves
+     * the FastPix id from the activity's currently-stored fastpix_asset_id, so it
+     * must be called BEFORE the activity row (or its asset link) is removed.
+     *
+     * @param int $activityid mdl_fastpix.id.
+     */
+    public function release_reference(int $activityid): void {
         global $DB;
-
-        $activity = $DB->get_record('fastpix', ['id' => $activityid], 'id, fastpix_asset_id');
-        if (!$activity || empty($activity->fastpix_asset_id)) {
-            // No asset linked yet (upload webhook never arrived) — nothing to do.
-            return;
+        try {
+            $activity = $DB->get_record('fastpix', ['id' => $activityid], 'id, fastpix_asset_id');
+            if (!$activity || empty($activity->fastpix_asset_id)) {
+                // No asset linked (upload webhook never arrived) — nothing to release.
+                return;
+            }
+            $asset = \local_fastpix\service\asset_service::get_by_id((int)$activity->fastpix_asset_id);
+            if ($asset === null || empty($asset->fastpix_id)) {
+                return;
+            }
+            \local_fastpix\service\asset_service::release_reference(
+                (string)$asset->fastpix_id,
+                $this->consumer_key($activityid)
+            );
+        } catch (\Throwable $e) {
+            debugging('mod_fastpix: release_reference failed for activity ' . $activityid
+                . ': ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
-
-        $assetid = (int)$activity->fastpix_asset_id;
-
-        // Count OTHER activities still pointing at the same asset.
-        $others = $DB->count_records_select(
-            'fastpix',
-            'fastpix_asset_id = :assetid AND id <> :selfid',
-            ['assetid' => $assetid, 'selfid' => $activityid]
-        );
-
-        if ($others > 0) {
-            // Asset is still referenced elsewhere — leave it alone (M9).
-            return;
-        }
-
-        // Last reference is going away: delegate the soft-delete to local_fastpix.
-        \local_fastpix\service\asset_service::soft_delete($assetid);
     }
 }

@@ -1,0 +1,183 @@
+- generic [active] [ref=e1]:
+  - status
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#maincontent"
+    - navigation "Site navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "dev" [ref=e6] [cursor=pointer]:
+          - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/my/
+        - navigation [ref=e8]:
+          - menubar [ref=e9]:
+            - menuitem "Home" [ref=e10] [cursor=pointer]
+            - menuitem "Dashboard" [ref=e11] [cursor=pointer]
+            - menuitem "My courses" [ref=e12] [cursor=pointer]
+            - menuitem "Site administration" [ref=e13] [cursor=pointer]
+            - text: 
+        - generic [ref=e14]:
+          - button "Show notification window with 2 new notifications" [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: "2"
+          - button "Toggle messaging drawer" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+          - button "User menu" [ref=e26] [cursor=pointer]:
+            - img "Admin User" [ref=e30]: AU
+            - text: 
+          - generic [ref=e33]:
+            - generic [ref=e34]: Edit mode
+            - checkbox "Edit mode" [ref=e36]
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - button "Close course index" [ref=e39] [cursor=pointer]:
+          - generic [ref=e40]: 
+        - generic [ref=e42]:
+          - button "Course index options" [ref=e43] [cursor=pointer]:
+            - generic [ref=e44]: 
+          - text:   
+      - navigation [ref=e46]:
+        - list [ref=e49]:
+          - listitem [ref=e50]
+          - listitem [ref=e54]
+          - listitem [ref=e58]
+          - listitem [ref=e62]
+    - generic [ref=e66]:
+      - generic [ref=e67]:
+        - generic: 
+        - banner [ref=e68]:
+          - heading "Demo-course" [level=1] [ref=e75]
+        - navigation [ref=e77]:
+          - menubar [ref=e78]:
+            - menuitem "Course" [ref=e79] [cursor=pointer]
+            - menuitem "Settings" [ref=e80] [cursor=pointer]
+            - menuitem "Participants" [ref=e81] [cursor=pointer]
+            - menuitem "Grades" [ref=e82] [cursor=pointer]
+            - menuitem "Reports" [ref=e83] [cursor=pointer]
+            - menuitem "More " [ref=e84] [cursor=pointer]
+        - main [ref=e88]:
+          - heading "New FastPix Video" [level=2] [ref=e90]
+          - generic [ref=e91]:
+            - button "Expand all" [ref=e93] [cursor=pointer]:
+              - generic [ref=e94]: Expand all
+            - group "General" [ref=e95]:
+              - generic [ref=e96]: General
+              - generic [ref=e98]:
+                - button "General" [expanded] [ref=e99] [cursor=pointer]:
+                  - generic "Collapse" [ref=e100]:
+                    - generic [ref=e101]: 
+                  - text:  
+                  - generic [ref=e102]: General
+                - heading [level=3] [ref=e103]: General
+              - generic [ref=e104]:
+                - generic [ref=e105]:
+                  - generic [ref=e106]:
+                    - generic [ref=e107]: Activity name
+                    - generic [ref=e110]: 
+                  - textbox "Activity name" [ref=e112]
+                - generic [ref=e113]:
+                  - generic [ref=e115]: Description
+                  - textbox "Description" [ref=e119]
+                - generic [ref=e123]:
+                  - checkbox "Display description on course page" [ref=e124]
+                  - generic [ref=e125]: Display description on course page
+                  - button "Help" [ref=e127] [cursor=pointer]:
+                    - img "Help with Display description on course page" [ref=e128]: 
+            - group "Media settings" [ref=e129]:
+              - generic [ref=e130]: Media settings
+              - generic [ref=e132]:
+                - button "Media settings" [ref=e133] [cursor=pointer]:
+                  - text: 
+                  - generic "Expand" [ref=e134]:
+                    - generic [ref=e136]: 
+                    - text: 
+                  - generic [ref=e137]: Media settings
+                - heading [level=3] [ref=e138]: Media settings
+            - group "Video source" [ref=e139]:
+              - generic [ref=e140]: Video source
+              - generic [ref=e142]:
+                - button "Video source" [ref=e143] [cursor=pointer]:
+                  - text: 
+                  - generic "Expand" [ref=e144]:
+                    - generic [ref=e146]: 
+                    - text: 
+                  - generic [ref=e147]: Video source
+                - heading [level=3] [ref=e148]: Video source
+            - group "Playback options" [ref=e149]:
+              - generic [ref=e150]: Playback options
+              - generic [ref=e152]:
+                - button "Playback options" [ref=e153] [cursor=pointer]:
+                  - text: 
+                  - generic "Expand" [ref=e154]:
+                    - generic [ref=e156]: 
+                    - text: 
+                  - generic [ref=e157]: Playback options
+                - heading [level=3] [ref=e158]: Playback options
+            - group "Common module settings" [ref=e159]:
+              - generic [ref=e160]: Common module settings
+              - generic [ref=e162]:
+                - button "Common module settings" [ref=e163] [cursor=pointer]:
+                  - text: 
+                  - generic "Expand" [ref=e164]:
+                    - generic [ref=e166]: 
+                    - text: 
+                  - generic [ref=e167]: Common module settings
+                - heading [level=3] [ref=e168]: Common module settings
+              - text:    
+            - group "Restrict access" [ref=e169]:
+              - generic [ref=e170]: Restrict access
+              - generic [ref=e172]:
+                - button "Restrict access" [ref=e173] [cursor=pointer]:
+                  - text: 
+                  - generic "Expand" [ref=e174]:
+                    - generic [ref=e176]: 
+                    - text: 
+                  - generic [ref=e177]: Restrict access
+                - heading [level=3] [ref=e178]: Restrict access
+              - text: 
+            - group "Completion conditions" [ref=e179]:
+              - generic [ref=e180]: Completion conditions
+              - generic [ref=e182]:
+                - button "Completion conditions" [ref=e183] [cursor=pointer]:
+                  - text: 
+                  - generic "Expand" [ref=e184]:
+                    - generic [ref=e186]: 
+                    - text: 
+                  - generic [ref=e187]: Completion conditions
+                - heading [level=3] [ref=e188]: Completion conditions
+              - text:  
+            - group "Tags" [ref=e189]:
+              - generic [ref=e190]: Tags
+              - generic [ref=e192]:
+                - button "Tags" [ref=e193] [cursor=pointer]:
+                  - text: 
+                  - generic "Expand" [ref=e194]:
+                    - generic [ref=e196]: 
+                    - text: 
+                  - generic [ref=e197]: Tags
+                - heading [level=3] [ref=e198]: Tags
+            - group "Competencies" [ref=e199]:
+              - generic [ref=e200]: Competencies
+              - generic [ref=e202]:
+                - button "Competencies" [ref=e203] [cursor=pointer]:
+                  - text: 
+                  - generic "Expand" [ref=e204]:
+                    - generic [ref=e206]: 
+                    - text: 
+                  - generic [ref=e207]: Competencies
+                - heading [level=3] [ref=e208]: Competencies
+              - text: 
+            - generic [ref=e212]:
+              - checkbox "Send content change notification" [ref=e213]
+              - generic [ref=e214]: Send content change notification
+              - button "Help" [ref=e216] [cursor=pointer]:
+                - img "Help with Send content change notification" [ref=e217]: 
+            - generic [ref=e222]:
+              - button "Save and return to course" [ref=e225] [cursor=pointer]
+              - button "Save and display" [ref=e228] [cursor=pointer]
+              - button "Cancel" [ref=e231] [cursor=pointer]
+            - generic [ref=e232]:
+              - generic [ref=e233]: 
+              - text: Required
+      - contentinfo:
+        - button "Show footer" [ref=e234] [cursor=pointer]:
+          - generic [ref=e235]: "?"
+        - text:    

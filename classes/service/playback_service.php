@@ -152,6 +152,17 @@ class playback_service {
             }
         }
 
+        // Register this activity's lifecycle reference to the linked asset (the
+        // canonical "on link" moment). Idempotent + fail-safe, so it both covers
+        // the just-backfilled case and self-heals activities linked before
+        // ref-counting existed. Skip soft-deleted assets — nothing to reference.
+        if ($asset !== null && !empty($asset->fastpix_id) && empty($asset->deleted_at)) {
+            asset_lifecycle_service::instance()->register_reference(
+                (int)$activity->id,
+                (string)$asset->fastpix_id
+            );
+        }
+
         if ($asset === null) {
             // No fastpix_asset_id and no resolvable upload_session → still processing.
             // No upload_session at all → asset truly unavailable.

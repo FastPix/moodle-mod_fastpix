@@ -19,6 +19,7 @@ namespace mod_fastpix\output;
 use mod_fastpix\dto\view_state_error;
 use mod_fastpix\dto\view_state_player;
 use mod_fastpix\dto\view_state_processing;
+use mod_fastpix\report\watch_report;
 
 /**
  * Output renderer for the FastPix activity module.
@@ -117,5 +118,190 @@ class renderer extends \plugin_renderer_base {
             'is_drm_unsupported'  => $s->reasonkey === 'drm_unsupported',
             'is_capability_lost'  => $s->reasonkey === 'capability_lost',
         ]);
+    }
+
+    /**
+     * Render the per-video (class) watch report.
+     *
+     * @param \stdClass $data From watch_report::get_video_report().
+     * @param \stdClass $cm Course-module record.
+     * @return string The rendered HTML.
+     */
+    public function render_video_report(\stdClass $data, \stdClass $cm): string {
+        $svc = watch_report::instance();
+
+        $rows = [];
+        foreach ($data->rows as $r) {
+            $rows[] = [
+                'studentname'  => fullname($r->user),
+                'userurl'      => (new \moodle_url('/mod/fastpix/report.php', [
+                    'id' => $cm->id, 'mode' => 'user', 'userid' => $r->userid,
+                ]))->out(false),
+                'watchpercent' => $r->coveragepercent,
+                'watchtime'    => $svc->format_clock($r->watchedseconds),
+                'milestones'   => $svc->milestones_text($r->milestones),
+                'completed'    => $r->completed,
+                'lastposition' => $svc->format_clock($r->currentposition),
+                'seeks'        => $r->seekcount,
+                'fraudcount'   => $r->fraudcount,
+                'fraudreason'  => $r->fraudreason,
+                'hasfraud'     => $r->fraudcount > 0,
+            ];
+        }
+
+        $context = [
+            'cmid'           => (int)$cm->id,
+            'hasrows'        => !empty($rows),
+            'rows'           => $rows,
+            'viewers'        => $data->summary->viewers,
+            'avgpercent'     => $data->summary->avgpercent,
+            'completionrate' => $data->summary->completionrate,
+            'hasdropoff'     => !empty($data->summary->dropoff),
+            'dropofflabel'   => $data->summary->dropoff['atlabel'] ?? '',
+            'dropoffpct'     => $data->summary->dropoff['droppct'] ?? 0,
+            'chart'          => $this->coverage_chart($data->heatmap),
+            'downloadurl'    => (new \moodle_url('/mod/fastpix/report.php', [
+                'id' => $cm->id, 'mode' => 'video', 'download' => 'csv',
+            ]))->out(false),
+        ];
+        return $this->render_from_template('mod_fastpix/report_video', $context);
+    }
+
+    /**
+     * Render the per-user watch report (one student across the course).
+     *
+     * @param \stdClass $data From watch_report::get_user_report().
+     * @param \stdClass $student The student user record.
+     * @param \stdClass $cm Course-module record.
+     * @return string The rendered HTML.
+     */
+    public function render_user_report(\stdClass $data, \stdClass $student, \stdClass $cm): string {
+        $svc = watch_report::instance();
+
+        $rows = [];
+        foreach ($data->rows as $r) {
+            $rows[] = [
+                'activityname' => $r->activityname,
+                'activityurl'  => (new \moodle_url('/mod/fastpix/view.php', ['id' => $r->cmid]))->out(false),
+                'watchpercent' => $r->coveragepercent,
+                'watchtime'    => $svc->format_clock($r->watchedseconds),
+                'milestones'   => $svc->milestones_text($r->milestones),
+                'completed'    => $r->completed,
+                'lastposition' => $svc->format_clock($r->currentposition),
+                'seeks'        => $r->seekcount,
+                'fraudcount'   => $r->fraudcount,
+                'fraudreason'  => $r->fraudreason,
+                'hasfraud'     => $r->fraudcount > 0,
+            ];
+        }
+
+        $context = [
+            'cmid'         => (int)$cm->id,
+            'studentname'  => fullname($student),
+            'backurl'      => (new \moodle_url('/mod/fastpix/report.php', [
+                'id' => $cm->id, 'mode' => 'video',
+            ]))->out(false),
+            'hasrows'      => !empty($rows),
+            'rows'         => $rows,
+            'downloadurl'  => (new \moodle_url('/mod/fastpix/report.php', [
+                'id' => $cm->id, 'mode' => 'user', 'userid' => (int)$student->id, 'download' => 'csv',
+            ]))->out(false),
+        ];
+        return $this->render_from_template('mod_fastpix/report_user', $context);
+    }
+
+    /**
+     * Build the engagement / drop-off line chart from a heatmap object.
+     * Returns '' when there is no usable timeline (no duration / no viewers).
+     *
+     * @param \stdClass $heatmap From watch_report::build_heatmap().
+     * @return string Chart HTML, or '' if not renderable.
+     */
+    private function coverage_chart(\stdClass $heatmap): string {
+        $values = array_map('intval', $heatmap->values ?? []);
+        $labels = array_values($heatmap->labels ?? []);
+        $n = count($values);
+        if ($n === 0) {
+            return '';
+        }
+
+        // Inline SVG with a HARD 0-100 y-axis. Moodle's \core\chart_line can't
+        // lock the axis: its adapter passes the bound as Chart.js v2-style
+        // ticks.min/max, which the bundled Chart.js v4 ignores — so an
+        // all-100% dataset auto-scales to ~95-105. SVG gives a fixed scale,
+        // is theme-friendly (CSS tokens), and needs no JS.
+        $w = 720;
+        $h = 220;
+        $padl = 34;
+        $padr = 10;
+        $padt = 10;
+        $padb = 26;
+        $plotw = $w - $padl - $padr;
+        $ploth = $h - $padt - $padb;
+        $x0 = $padl;
+        $ybottom = $padt + $ploth;
+
+        $xfor = function ($i) use ($n, $x0, $plotw) {
+            return $n <= 1 ? $x0 + $plotw / 2 : $x0 + ($i / ($n - 1)) * $plotw;
+        };
+        $yfor = function ($pct) use ($padt, $ploth) {
+            $pct = max(0, min(100, (float)$pct));
+            return $padt + (1 - $pct / 100) * $ploth;
+        };
+
+        // Gridlines + y-axis labels locked to 0/25/50/75/100.
+        $grid = '';
+        foreach ([0, 25, 50, 75, 100] as $g) {
+            $y = round($yfor($g), 1);
+            $grid .= \html_writer::tag('line', '', [
+                'class' => 'fastpix-eng-grid', 'x1' => $x0, 'y1' => $y, 'x2' => $x0 + $plotw, 'y2' => $y,
+            ]);
+            $grid .= \html_writer::tag('text', $g, [
+                'class' => 'fastpix-eng-ylabel', 'x' => $x0 - 6, 'y' => round($y + 3, 1), 'text-anchor' => 'end',
+            ]);
+        }
+
+        // Line + filled area.
+        $pts = [];
+        foreach ($values as $i => $v) {
+            $pts[] = round($xfor($i), 1) . ',' . round($yfor($v), 1);
+        }
+        $line = implode(' ', $pts);
+        $area = round($xfor(0), 1) . ',' . round($ybottom, 1) . ' ' . $line . ' '
+            . round($xfor($n - 1), 1) . ',' . round($ybottom, 1);
+
+        // A handful of x-axis time labels.
+        $xlabels = '';
+        $positions = array_values(array_unique([
+            0, intdiv($n - 1, 4), intdiv($n - 1, 2), intdiv(3 * ($n - 1), 4), $n - 1,
+        ]));
+        foreach ($positions as $i) {
+            if (!isset($labels[$i])) {
+                continue;
+            }
+            $anchor = $i === 0 ? 'start' : ($i === $n - 1 ? 'end' : 'middle');
+            $xlabels .= \html_writer::tag('text', s($labels[$i]), [
+                'class' => 'fastpix-eng-xlabel', 'x' => round($xfor($i), 1), 'y' => $h - 8, 'text-anchor' => $anchor,
+            ]);
+        }
+
+        $svg = \html_writer::tag(
+            'svg',
+            $grid
+                . \html_writer::tag('polygon', '', ['class' => 'fastpix-eng-area', 'points' => $area])
+                . \html_writer::tag('polyline', '', ['class' => 'fastpix-eng-line', 'points' => $line])
+                . $xlabels,
+            [
+                'class' => 'fastpix-eng-svg',
+                'viewBox' => "0 0 {$w} {$h}",
+                'role' => 'img',
+                'aria-label' => get_string('report_engagement', 'mod_fastpix'),
+            ]
+        );
+
+        return \html_writer::div(
+            \html_writer::div(get_string('report_viewerspct', 'mod_fastpix'), 'fastpix-eng-caption') . $svg,
+            'fastpix-eng-chart'
+        );
     }
 }

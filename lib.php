@@ -63,17 +63,9 @@ function fastpix_supports($feature) {
 function fastpix_add_instance($data, $mform = null) {
     global $DB;
 
-    // The two "Player behaviour" toggles are rendered as raw HTML checkboxes
-    // in mod_form.php (for the styled card look), not registered mform elements,
-    // so the real form's get_data() never populates them — there we read the
-    // posted checkbox value. But programmatic callers (the data generator,
-    // restore, Behat) pass the values directly on $data, so honour those first.
-    $noskiprequired = isset($data->no_skip_required)
-        ? ((int)(bool)$data->no_skip_required)
-        : (optional_param('no_skip_required', 0, PARAM_BOOL) ? 1 : 0);
-    $defaultshowcaptions = isset($data->default_show_captions)
-        ? ((int)(bool)$data->default_show_captions)
-        : (optional_param('default_show_captions', 0, PARAM_BOOL) ? 1 : 0);
+    // Player-behaviour + media settings are normalised in the shared service.
+    $settings = \mod_fastpix\service\form_settings_service::instance();
+    $resolved = $settings->resolve($data);
 
     $now = time();
     $record = (object) [
@@ -86,14 +78,19 @@ function fastpix_add_instance($data, $mform = null) {
         'completion_watch_percent' => !empty($data->completionwatchedpercentenabled)
             ? (int)$data->completionwatchedpercent
             : 90,
-        'no_skip_required'         => $noskiprequired,
-        'default_show_captions'    => $defaultshowcaptions,
+        'no_skip_required'         => $resolved->noskiprequired,
+        'default_show_captions'    => $resolved->defaultshowcaptions,
+        'access_policy'            => $resolved->accesspolicy,
+        'captions_mode'            => $resolved->captionsmode,
+        'language_code'            => $resolved->languagecode,
         'grademax'                 => isset($data->grade) ? (float)$data->grade : 100,
         'timecreated'              => $now,
         'timemodified'             => $now,
     ];
 
     $id = $DB->insert_record('fastpix', $record);
+
+    $settings->save_captions_file($data, $resolved->captionsmode, $resolved->captionsdraftid);
 
     // Create the grade item now (core's edit_module_post_actions only updates
     // existing items — the module is responsible for creating it on add).
@@ -114,15 +111,9 @@ function fastpix_add_instance($data, $mform = null) {
 function fastpix_update_instance($data, $mform = null) {
     global $DB;
 
-    // See fastpix_add_instance(): the raw-HTML "Player behaviour" checkboxes are
-    // not registered mform elements, so the real form never reaches $data — read
-    // the posted value there. Programmatic callers pass them on $data directly.
-    $noskiprequired = isset($data->no_skip_required)
-        ? ((int)(bool)$data->no_skip_required)
-        : (optional_param('no_skip_required', 0, PARAM_BOOL) ? 1 : 0);
-    $defaultshowcaptions = isset($data->default_show_captions)
-        ? ((int)(bool)$data->default_show_captions)
-        : (optional_param('default_show_captions', 0, PARAM_BOOL) ? 1 : 0);
+    // Player-behaviour + media settings are normalised in the shared service.
+    $settings = \mod_fastpix\service\form_settings_service::instance();
+    $resolved = $settings->resolve($data);
 
     $record = (object) [
         'id'                       => $data->instance,
@@ -132,19 +123,37 @@ function fastpix_update_instance($data, $mform = null) {
         'completion_watch_percent' => !empty($data->completionwatchedpercentenabled)
             ? (int)$data->completionwatchedpercent
             : 90,
-        'no_skip_required'         => $noskiprequired,
-        'default_show_captions'    => $defaultshowcaptions,
+        'no_skip_required'         => $resolved->noskiprequired,
+        'default_show_captions'    => $resolved->defaultshowcaptions,
+        'access_policy'            => $resolved->accesspolicy,
+        'captions_mode'            => $resolved->captionsmode,
+        'language_code'            => $resolved->languagecode,
         'grademax'                 => isset($data->grade) ? (float)$data->grade : 100,
         'timemodified'             => time(),
     ];
 
     if (!empty($data->upload_session_id)) {
+        // Asset swap: if the activity is being pointed at a DIFFERENT upload, release
+        // the OLD asset reference now — read it from the DB row before we clear the
+        // link (the new reference registers when the new asset links, in
+        // resolve_for_view). Unchanged upload → leave the reference as-is (idempotent).
+        $existing = $DB->get_record('fastpix', ['id' => $data->instance], 'id, upload_session_id, fastpix_asset_id');
+        if (
+            $existing
+            && (int)$data->upload_session_id !== (int)($existing->upload_session_id ?? 0)
+            && !empty($existing->fastpix_asset_id)
+        ) {
+            \mod_fastpix\service\asset_lifecycle_service::instance()->release_reference((int)$data->instance);
+        }
+
         $record->upload_session_id = (int)$data->upload_session_id;
         // The webhook will populate fastpix_asset_id; clear any stale reference.
         $record->fastpix_asset_id = null;
     }
 
     $DB->update_record('fastpix', $record);
+
+    $settings->save_captions_file($data, $resolved->captionsmode, $resolved->captionsdraftid);
 
     // Keep the grade item in sync with the (possibly changed) name / max grade.
     $record->course = $data->course;
@@ -166,6 +175,11 @@ function fastpix_delete_instance($id) {
     if (!$DB->record_exists('fastpix', ['id' => $id])) {
         return false;
     }
+
+    // Release this activity's asset reference before the row is gone. local_fastpix
+    // soft-deletes the asset only when its LAST reference is released. Fail-safe:
+    // the delete must always succeed even if the service is unavailable.
+    \mod_fastpix\service\asset_lifecycle_service::instance()->release_reference((int)$id);
 
     $DB->delete_records('fastpix_attempt', ['activity_id' => $id]);
     $DB->delete_records('fastpix', ['id' => $id]);
@@ -278,22 +292,6 @@ function fastpix_update_grades($activity = null, $userid = 0, $nullifnone = true
 }
 
 /**
- * Recycle-bin hook — Phase E (backup/restore + asset lifecycle).
- *
- * Soft-deletes the backing FastPix asset via local_fastpix, but only when no
- * other live activity still references it (M9). Reference counting + the
- * delegate to \local_fastpix\service\asset_service::soft_delete() live in the
- * service layer (A1/A6); this callback just bridges $cm -> service.
- *
- * @param \stdClass $cm The course-module being deleted.
- * @package mod_fastpix
- */
-function fastpix_pre_course_module_delete($cm) {
-    \mod_fastpix\service\asset_lifecycle_service::instance()
-        ->soft_delete_if_unreferenced((int)$cm->instance);
-}
-
-/**
  * Surface custom-completion rules + threshold value on cm_info->customdata
  * so the completion-rules UI (and our custom_completion class) can read the
  * configured threshold for each activity. Pattern matches mod_quiz / mod_forum.
@@ -342,4 +340,79 @@ function fastpix_get_completion_active_rule_descriptions($cm) {
     return [
         get_string('completionwatchedpercent_desc', 'mod_fastpix', $threshold),
     ];
+}
+
+/**
+ * Add the "Watch report" link to the activity's secondary navigation, for users
+ * who can see all attempts (mod/fastpix:viewallattempts). The reporting surface
+ * is display-only over mdl_fastpix_attempt (no tracking, no FastPix calls).
+ *
+ * @param \settings_navigation $settings The settings navigation object.
+ * @param \navigation_node $fastpixnode The activity's navigation node.
+ * @package mod_fastpix
+ */
+function fastpix_extend_settings_navigation(settings_navigation $settings, navigation_node $fastpixnode) {
+    global $PAGE;
+
+    // Read the magic property into a local first: empty($PAGE->cm) is unreliable
+    // because moodle_page has __get but no __isset for 'cm', so empty()/isset()
+    // report it missing even when it is set, and the node would never be added.
+    $cm = $PAGE->cm;
+    if (!$cm) {
+        return;
+    }
+    $context = \context_module::instance($cm->id);
+    if (!has_capability('mod/fastpix:viewallattempts', $context)) {
+        return;
+    }
+
+    $url = new moodle_url('/mod/fastpix/report.php', ['id' => $cm->id]);
+    $node = navigation_node::create(
+        get_string('watchreport', 'mod_fastpix'),
+        $url,
+        navigation_node::TYPE_SETTING,
+        null,
+        'watchreport',
+        new pix_icon('i/report', '')
+    );
+    // Promote to a primary secondary-nav tab (fastpix has well under Moodle's
+    // 5-tab limit, so it shows alongside the activity + Settings, not in "More").
+    $node->set_show_in_secondary_navigation(true);
+    $fastpixnode->add_node($node);
+}
+
+/**
+ * Serve files from mod_fastpix file areas. Only the teacher-uploaded captions
+ * (.vtt) area is exposed, gated on mod/fastpix:uploadmedia — these are upload
+ * working material, not student-facing (students get captions from FastPix).
+ *
+ * @param \stdClass $course Course object.
+ * @param \stdClass $cm Course-module object.
+ * @param \context $context Module context.
+ * @param string $filearea The requested file area.
+ * @param array $args itemid / filepath / filename segments.
+ * @param bool $forcedownload Whether to force download.
+ * @param array $options Additional options for sending the file.
+ * @return bool False on failure; otherwise streams the file and exits.
+ * @package mod_fastpix
+ */
+function fastpix_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+    if ($context->contextlevel != CONTEXT_MODULE || $filearea !== 'captions') {
+        return false;
+    }
+
+    require_login($course, true, $cm);
+    require_capability('mod/fastpix:uploadmedia', $context);
+
+    // The captions area uses a fixed itemid of 0 (one file per activity).
+    array_shift($args);
+    $filename = array_pop($args);
+    $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
+
+    $file = get_file_storage()->get_file($context->id, 'mod_fastpix', 'captions', 0, $filepath, $filename);
+    if (!$file || $file->is_directory()) {
+        return false;
+    }
+
+    send_stored_file($file, 86400, 0, $forcedownload, $options);
 }

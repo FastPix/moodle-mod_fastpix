@@ -60,7 +60,44 @@ const SELECTORS = {
     validateBtn:      '[name="validate_url"]',
 };
 
+// Course context id received from init() — forwarded to local_fastpix's upload
+// web services so they check mod/fastpix:uploadmedia against the course context
+// (where editing teachers hold the capability), not the system context.
+let widgetContextId = null;
+
 const getSessionField = (fieldname) => document.querySelector(`input[name="${fieldname}"]`);
+
+/**
+ * Read the form's Media-settings fields into the create_upload_session args.
+ * local_fastpix_create_upload_session consumes: contextid, title (required),
+ * accesspolicy (required), captionsmode, languagecode — NOT filename/size.
+ *
+ * @param {File} file The file being uploaded (filename → fallback title).
+ * @returns {Object} The web-service args.
+ */
+const gatherUploadArgs = (file) => {
+    const nameEl = document.querySelector('input[name="name"]');
+    let title = nameEl && nameEl.value ? nameEl.value.trim() : '';
+    if (!title) {
+        title = file && file.name ? file.name.replace(/\.[^.]+$/, '') : 'Untitled video';
+    }
+    const apEl = document.querySelector('input[name="access_policy"]:checked');
+    const accesspolicy = apEl ? apEl.value : 'private';
+    let captionsmode = 'none';
+    if (document.querySelector('input[name="captionsenabled"]:checked')) {
+        const modeEl = document.querySelector('input[name="captionsmode"]:checked');
+        captionsmode = (modeEl && modeEl.value === 'vtt') ? 'vtt' : 'auto';
+    }
+    const langEl = document.querySelector('select[name="languagecode"]');
+    const languagecode = (captionsmode === 'auto' && langEl) ? langEl.value : '';
+    return {
+        contextid: widgetContextId,
+        title: title,
+        accesspolicy: accesspolicy,
+        captionsmode: captionsmode,
+        languagecode: languagecode,
+    };
+};
 
 const setSourceType = (value) => {
     const el = document.querySelector(SELECTORS.sourceType);
@@ -213,7 +250,7 @@ const handleFileSelected = async (region, sessionField, file) => {
     try {
         [session] = await Promise.all(ajaxCall([{
             methodname: 'local_fastpix_create_upload_session',
-            args: { filename: file.name, size: file.size },
+            args: gatherUploadArgs(file),
         }]));
     } catch (e) {
         Notification.exception(e);
@@ -227,7 +264,10 @@ const handleFileSelected = async (region, sessionField, file) => {
     const pct = region.querySelector(SELECTORS.progressPct);
 
     try {
-        await putToSignedUrl(file, session.upload_url, (percent) => {
+        // create_upload_session returns 'uploadurl' (signed PUT target) +
+        // 'uploadid'. NOTE the no-underscore field names — they differ from
+        // create_url_pull_session ('upload_url' / 'session_id').
+        await putToSignedUrl(file, session.uploadurl, (percent) => {
             if (bar) { bar.value = percent; }
             if (fill) { fill.style.width = `${percent}%`; }
             if (pct) { pct.textContent = `${percent}%`; }
@@ -238,7 +278,10 @@ const handleFileSelected = async (region, sessionField, file) => {
         return;
     }
 
-    sessionField.value = String(session.session_id);
+    // Persist the upload-session reference for the activity row. create_upload_session
+    // currently returns only 'uploadid' (a FastPix UUID), not the integer session id
+    // that create_url_pull_session returns — prefer session_id if present.
+    sessionField.value = String(session.session_id || session.uploadid || '');
     showSuccessUI(region);
 };
 
@@ -317,7 +360,7 @@ const validateUrl = async (sessionField, button) => {
     try {
         [session] = await Promise.all(ajaxCall([{
             methodname: 'local_fastpix_create_url_pull_session',
-            args: { source_url: urlInput.value },
+            args: { source_url: urlInput.value, contextid: widgetContextId },
         }]));
     } catch (e) {
         Notification.exception(e);
@@ -337,6 +380,7 @@ const renderInto = async (region) => {
 };
 
 export const init = async (config) => {
+    widgetContextId = config.contextId;
     const region = document.querySelector(SELECTORS.region);
     if (!region) { return; }
 

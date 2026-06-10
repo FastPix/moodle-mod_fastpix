@@ -34,6 +34,33 @@ require_once($CFG->dirroot . '/course/moodleform_mod.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class mod_fastpix_mod_form extends moodleform_mod {
+    /** FastPix-supported caption languages (stable). */
+    const CAPTION_LANGS_SUPPORTED = ['en', 'es', 'it', 'pt', 'de', 'fr'];
+
+    /** FastPix beta caption languages — tagged "(Beta)" in the picker. */
+    const CAPTION_LANGS_BETA = [
+        'pl', 'ru', 'nl', 'ca', 'tr', 'sv', 'uk', 'no', 'fi', 'sk',
+        'el', 'cs', 'hr', 'da', 'ro', 'bg',
+    ];
+
+    /**
+     * Build the language <select> options for auto-generated captions:
+     * supported languages first, then beta languages tagged "(Beta)".
+     *
+     * @return array<string,string> code => display label
+     */
+    public static function caption_language_options(): array {
+        $options = [];
+        foreach (self::CAPTION_LANGS_SUPPORTED as $code) {
+            $options[$code] = get_string('lang_' . $code, 'mod_fastpix');
+        }
+        foreach (self::CAPTION_LANGS_BETA as $code) {
+            $options[$code] = get_string('lang_' . $code, 'mod_fastpix')
+                . ' ' . get_string('captions_beta_tag', 'mod_fastpix');
+        }
+        return $options;
+    }
+
     /**
      * Define the activity settings form.
      *
@@ -50,6 +77,10 @@ class mod_fastpix_mod_form extends moodleform_mod {
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
         $this->standard_intro_elements();
+
+        // Media settings sit above the video source: teachers pick protection +
+        // captions before uploading, matching the design reference order.
+        $this->add_media_settings($mform);
 
         $mform->addElement('header', 'videosource', get_string('videosource', 'mod_fastpix'));
 
@@ -186,16 +217,349 @@ class mod_fastpix_mod_form extends moodleform_mod {
             </div>'
         );
 
-        global $PAGE;
+        global $PAGE, $COURSE;
         $cmid = !empty($this->_cm->id) ? (int)$this->_cm->id : 0;
+        // The upload widget forwards this context id to local_fastpix's upload
+        // web services, which check mod/fastpix:uploadmedia against it. That
+        // capability is granted to editingteacher at CONTEXT_COURSE (db/access.php),
+        // so the COURSE context is correct here — the previous CONTEXT_SYSTEM id
+        // denied editing teachers. $COURSE is always populated on this form for
+        // both activity create and edit.
         $PAGE->requires->js_call_amd('mod_fastpix/upload_widget', 'init', [[
-            'contextId'         => \context_system::instance()->id,
+            'contextId'         => \context_course::instance($COURSE->id)->id,
             'fieldnameSession'  => 'upload_session_id',
             'cmid'              => $cmid,
         ]]);
 
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();
+    }
+
+    /**
+     * The "Media settings" section: access policy + captions & transcript.
+     *
+     * Rendered as custom HTML (segmented access-policy control + a captions card
+     * with a pill toggle, auto/vtt tabs, language picker, and a .vtt dropzone) to
+     * match the design reference. The controls are real form inputs (radios /
+     * checkbox / select / file) styled via CSS — accessible and read server-side
+     * via optional_param() (lib.php + validate_fastpix_rules), NOT registered
+     * mform elements. Toggle/tab show-hide is CSS-only (:checked ~ siblings); the
+     * .vtt dropzone uploads to a Moodle draft area via the mod_fastpix/captions_upload
+     * AMD module. mod_fastpix makes no FastPix HTTP call here (A2).
+     *
+     * @param \MoodleQuickForm $mform The form being built.
+     * @return void
+     */
+    protected function add_media_settings($mform): void {
+        global $CFG, $DB, $PAGE;
+        require_once($CFG->dirroot . '/repository/lib.php');
+
+        $mform->addElement('header', 'mediasettings', get_string('mediasettings', 'mod_fastpix'));
+
+        // Decorative intro card (matches the other section intros in this form).
+        $msicon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+            . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            . '<circle cx="12" cy="12" r="3"/>'
+            . '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 '
+            . '1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 '
+            . '1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 '
+            . '4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 '
+            . '0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 '
+            . '1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 '
+            . '1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 '
+            . '1.65 0 0 0-1.51 1z"/></svg>';
+        $mscard = html_writer::div(
+            html_writer::div($msicon, 'fastpix-ms-ico')
+            . html_writer::div(
+                html_writer::tag(
+                    'div',
+                    s(get_string('mediasettings_card_title', 'mod_fastpix')),
+                    ['class' => 'fastpix-ms-title']
+                )
+                . html_writer::tag(
+                    'div',
+                    s(get_string('mediasettings_intro', 'mod_fastpix')),
+                    ['class' => 'fastpix-ms-sub']
+                ),
+                'fastpix-ms-body'
+            ),
+            'fastpix-ms-head'
+        );
+        $mform->addElement('html', $mscard);
+
+        // Current stored values (edit mode) for first-paint state.
+        $currentpolicy = 'private';
+        $currentmode   = 'none';
+        $currentlang   = 'en';
+        if (!empty($this->_instance)) {
+            $existing = $DB->get_record(
+                'fastpix',
+                ['id' => $this->_instance],
+                'access_policy, captions_mode, language_code'
+            );
+            if ($existing) {
+                if (in_array($existing->access_policy, ['private', 'public', 'drm'], true)) {
+                    $currentpolicy = $existing->access_policy;
+                }
+                $currentmode = $existing->captions_mode ?: 'none';
+                $currentlang = $existing->language_code ?: 'en';
+            }
+        }
+
+        // Access policy: custom-HTML segmented control (read via optional_param).
+        $mform->addElement('html', $this->render_access_policy_control($currentpolicy));
+
+        // Captions & transcript: custom-HTML card.
+        // Prepare a draft file area for the .vtt (loads any stored file on edit);
+        // the AMD dropzone uploads into it, and the hidden captionsfile field
+        // carries the draft itemid through the normal form submit.
+        $context = !empty($this->context) ? $this->context : \context_system::instance();
+        // Reuse the submitted draft itemid on a validation re-render so an
+        // already-uploaded .vtt survives; 0 on first display mints a fresh one.
+        $draftitemid = file_get_submitted_draft_itemid('captionsfile');
+        file_prepare_draft_area(
+            $draftitemid,
+            $context->id,
+            'mod_fastpix',
+            'captions',
+            0,
+            ['subdirs' => 0, 'maxfiles' => 1, 'accepted_types' => ['.vtt']]
+        );
+        $existingname = '';
+        $draftinfo = file_get_drafarea_files($draftitemid, '/');
+        if (!empty($draftinfo->list)) {
+            $existingname = (string)reset($draftinfo->list)->filename;
+        }
+
+        // The Moodle "Upload" repository instance backs the dropzone's AJAX POST.
+        $repoid = 0;
+        $uploadrepos = repository::get_instances(['currentcontext' => $context, 'type' => 'upload']);
+        if ($uploadrepos) {
+            $repoid = (int)reset($uploadrepos)->id;
+        }
+
+        $mform->addElement('html', $this->render_captions_control(
+            $currentmode,
+            $currentlang,
+            $draftitemid,
+            $existingname
+        ));
+
+        $PAGE->requires->js_call_amd('mod_fastpix/captions_upload', 'init', [[
+            'itemid'    => $draftitemid,
+            'repoId'    => $repoid,
+            'contextId' => $context->id,
+            'strings'   => [
+                'uploading' => get_string('captions_uploading', 'mod_fastpix'),
+                'uploaderror' => get_string('captions_uploaderror', 'mod_fastpix'),
+                'badtype'   => get_string('captions_badtype', 'mod_fastpix'),
+            ],
+        ]]);
+    }
+
+    /**
+     * Render the access-policy segmented control as custom HTML.
+     *
+     * Real <input type="radio"> elements (name="access_policy") styled via CSS
+     * into the reference's three-up segmented buttons — accessible (for=label,
+     * keyboard-navigable, role="radiogroup") and JS-free. The helper line under
+     * the buttons swaps with the selection via a CSS :checked ~ sibling rule,
+     * which is why the inputs precede the help paragraphs in source order.
+     *
+     * @param string $current The currently selected policy (private|public|drm).
+     * @return string The control's HTML.
+     */
+    protected function render_access_policy_control(string $current): string {
+        $policies = ['private', 'public', 'drm'];
+
+        $seg = '';
+        foreach ($policies as $policy) {
+            $id = 'fastpix_ap_' . $policy;
+            $attrs = [
+                'class' => 'fastpix-ap-input',
+                'type'  => 'radio',
+                'name'  => 'access_policy',
+                'id'    => $id,
+                'value' => $policy,
+            ];
+            if ($policy === $current) {
+                $attrs['checked'] = 'checked';
+            }
+            $seg .= html_writer::empty_tag('input', $attrs);
+            $seg .= html_writer::tag(
+                'label',
+                s(get_string('accesspolicy_' . $policy, 'mod_fastpix')),
+                ['class' => 'fastpix-ap-btn', 'for' => $id]
+            );
+        }
+        // Helper lines AFTER the inputs (sibling order matters for the CSS swap).
+        foreach ($policies as $policy) {
+            $seg .= html_writer::tag(
+                'p',
+                s(get_string('accesspolicy_' . $policy . '_help', 'mod_fastpix')),
+                ['class' => 'fastpix-ap-help', 'data-policy' => $policy]
+            );
+        }
+
+        $label = html_writer::tag(
+            'div',
+            s(get_string('accesspolicy', 'mod_fastpix')),
+            ['class' => 'fastpix-ap-label']
+        );
+        return html_writer::div(
+            $label . html_writer::div(
+                $seg,
+                'fastpix-ap-seg',
+                ['role' => 'radiogroup', 'aria-label' => get_string('accesspolicy', 'mod_fastpix')]
+            ),
+            'fastpix-ap'
+        );
+    }
+
+    /**
+     * Render the captions & transcript card as custom HTML.
+     *
+     * Real inputs (a checkbox toggle, auto/vtt radios, a language <select>, a
+     * .vtt file input) styled via CSS to match the reference. The toggle and
+     * tabs drive show/hide entirely through CSS :checked ~ sibling rules, which
+     * is why all three inputs precede the head/body in source order. Values are
+     * read server-side via optional_param(); the .vtt is uploaded to a draft
+     * area by the mod_fastpix/captions_upload AMD module and its itemid rides
+     * along in the hidden captionsfile field.
+     *
+     * @param string $mode Stored caption mode: none | auto | vtt.
+     * @param string $lang Stored language code (auto mode).
+     * @param int $draftitemid Draft area itemid backing the dropzone.
+     * @param string $existingname Filename already in the draft area, or ''.
+     * @return string The card HTML.
+     */
+    protected function render_captions_control(string $mode, string $lang, int $draftitemid, string $existingname): string {
+        $enabled   = ($mode !== 'none');
+        $activetab = ($mode === 'vtt') ? 'vtt' : 'auto';
+
+        // State-bearing inputs first (CSS :checked ~ targets later siblings).
+        // The hidden 0 precedes the checkbox so a ticked box wins on POST.
+        $inputs = html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'captionsenabled', 'value' => '0']);
+        $togattrs = [
+            'type'       => 'checkbox',
+            'id'         => 'fastpix_cap_toggle',
+            'class'      => 'fastpix-cap-toggle-input',
+            'name'       => 'captionsenabled',
+            'value'      => '1',
+            'aria-label' => get_string('captions', 'mod_fastpix'),
+        ];
+        if ($enabled) {
+            $togattrs['checked'] = 'checked';
+        }
+        $inputs .= html_writer::empty_tag('input', $togattrs);
+        foreach (['auto', 'vtt'] as $m) {
+            $rattrs = [
+                'type'  => 'radio',
+                'id'    => 'fastpix_cap_' . $m,
+                'class' => 'fastpix-cap-mode-input',
+                'name'  => 'captionsmode',
+                'value' => $m,
+            ];
+            if ($m === $activetab) {
+                $rattrs['checked'] = 'checked';
+            }
+            $inputs .= html_writer::empty_tag('input', $rattrs);
+        }
+
+        // Header row: icon tile + title/subtitle + pill toggle.
+        $ccico = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+            . '<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm3.5 5A2.5 2.5 0 0 0 5 '
+            . '11.5v1A2.5 2.5 0 0 0 7.5 15a2.5 2.5 0 0 0 2.45-2H8.4a1 1 0 0 1-.9.5 1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1 1 1 0 '
+            . '0 1 .9.5h1.55A2.5 2.5 0 0 0 7.5 9zm8 0a2.5 2.5 0 0 0-2.5 2.5v1A2.5 2.5 0 0 0 15.5 15a2.5 2.5 0 0 0 '
+            . '2.45-2H16.4a1 1 0 0 1-.9.5 1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1 1 1 0 0 1 .9.5h1.55A2.5 2.5 0 0 0 15.5 9z"/></svg>';
+        $head = html_writer::div(
+            html_writer::div($ccico, 'fastpix-cap-ico')
+            . html_writer::div(
+                html_writer::tag('div', s(get_string('captions', 'mod_fastpix')), ['class' => 'fastpix-cap-title'])
+                . html_writer::tag('div', s(get_string('captions_desc', 'mod_fastpix')), ['class' => 'fastpix-cap-sub']),
+                'fastpix-cap-headtext'
+            )
+            . html_writer::tag('label', '', [
+                'class'       => 'fastpix-cap-toggle',
+                'for'         => 'fastpix_cap_toggle',
+                'aria-hidden' => 'true',
+            ]),
+            'fastpix-cap-head'
+        );
+
+        // Tabs.
+        $tabs = html_writer::div(
+            html_writer::tag('label', s(get_string('captionsmode_auto', 'mod_fastpix')), [
+                'class' => 'fastpix-cap-tab', 'for' => 'fastpix_cap_auto',
+            ])
+            . html_writer::tag('label', s(get_string('captionsmode_vtt', 'mod_fastpix')), [
+                'class' => 'fastpix-cap-tab', 'for' => 'fastpix_cap_vtt',
+            ]),
+            'fastpix-cap-tabs'
+        );
+
+        // Auto pane: full-width language picker.
+        $options = '';
+        foreach (self::caption_language_options() as $code => $labeltext) {
+            $oattrs = ['value' => $code];
+            if ($code === $lang) {
+                $oattrs['selected'] = 'selected';
+            }
+            $options .= html_writer::tag('option', s($labeltext), $oattrs);
+        }
+        $autopane = html_writer::div(
+            html_writer::tag('label', s(get_string('captionslanguage', 'mod_fastpix')), [
+                'class' => 'fastpix-cap-mini', 'for' => 'fastpix_lang',
+            ])
+            . html_writer::tag('select', $options, [
+                'id' => 'fastpix_lang', 'name' => 'languagecode', 'class' => 'fastpix-cap-select',
+            ])
+            . html_writer::tag('p', s(get_string('captionslanguage_help', 'mod_fastpix')), ['class' => 'fastpix-cap-help']),
+            'fastpix-cap-pane fastpix-cap-pane-auto'
+        );
+
+        // VTT pane: custom dropzone uploaded by mod_fastpix/captions_upload.
+        $uploadico = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+            . '<path d="M11 16V7.85l-2.6 2.6L7 9l5-5 5 5-1.4 1.45L13 7.85V16zM6 20a2 2 0 0 1-2-2v-3h2v3h12v-3h2v3a2 '
+            . '2 0 0 1-2 2z"/></svg>';
+        $browse = html_writer::tag('a', s(get_string('captionsfile_browse', 'mod_fastpix')), [
+            'href' => '#', 'data-action' => 'fastpix-vtt-browse', 'class' => 'fastpix-vtt-browse',
+        ]);
+        $statusattrs = ['class' => 'fastpix-vtt-status', 'data-region' => 'fastpix-vtt-status'];
+        if ($existingname === '') {
+            $statusattrs['hidden'] = 'hidden';
+        }
+        $dropzone = html_writer::div(
+            html_writer::empty_tag('input', [
+                'type' => 'file', 'class' => 'fastpix-vtt-file',
+                'data-region' => 'fastpix-vtt-input', 'accept' => '.vtt', 'hidden' => 'hidden',
+            ])
+            . html_writer::div($uploadico, 'fastpix-vtt-ico')
+            . html_writer::tag(
+                'div',
+                s(get_string('captionsfile_droptext', 'mod_fastpix')) . ' ' . $browse,
+                ['class' => 'fastpix-vtt-main']
+            )
+            . html_writer::tag('div', s(get_string('captionsfile_help', 'mod_fastpix')), ['class' => 'fastpix-vtt-sub'])
+            . html_writer::tag('div', s($existingname), $statusattrs),
+            'fastpix-vtt-dropzone' . ($existingname !== '' ? ' has-file' : ''),
+            [
+                'data-region' => 'fastpix-vtt-dropzone',
+                'tabindex'    => '0',
+                'role'        => 'button',
+                'aria-label'  => get_string('captionsfile', 'mod_fastpix'),
+            ]
+        );
+        $vttpane = html_writer::div(
+            $dropzone . html_writer::empty_tag('input', [
+                'type' => 'hidden', 'name' => 'captionsfile', 'value' => $draftitemid,
+            ]),
+            'fastpix-cap-pane fastpix-cap-pane-vtt'
+        );
+
+        $body = html_writer::div($tabs . $autopane . $vttpane, 'fastpix-cap-body');
+
+        return html_writer::div($inputs . $head . $body, 'fastpix-cap-card');
     }
 
     /**
@@ -263,6 +627,10 @@ class mod_fastpix_mod_form extends moodleform_mod {
             $defaultvalues['completionwatchedpercent'] = (int)$defaultvalues['completion_watch_percent'];
             $defaultvalues['completionwatchedpercentenabled'] = 1;
         }
+
+        // Media settings (access policy + captions) are custom-HTML controls;
+        // their first-paint state is rendered directly in add_media_settings()
+        // from the stored row, not via $defaultvalues.
     }
 
     /**
@@ -317,6 +685,43 @@ class mod_fastpix_mod_form extends moodleform_mod {
             $threshold = (int)$data['completionwatchedpercent'];
             if ($threshold <= 0 || $threshold > 100) {
                 $errors['completionwatchedpercentgroup'] = get_string('error_thresholdrange', 'mod_fastpix');
+            }
+        }
+
+        // Access policy: DRM is only selectable when the site has DRM configured.
+        // The control is custom HTML, so the value arrives via POST — read it
+        // with optional_param (tests pass it on $data directly). The error
+        // attaches to 'name' (a visible element) since the segmented control has
+        // no mform row of its own, mirroring the upload/url errors above.
+        $policy = $data['access_policy'] ?? optional_param('access_policy', 'private', PARAM_ALPHA);
+        if ($policy === 'drm' && !\local_fastpix\service\feature_flag_service::instance()->drm_enabled()) {
+            $errors['name'] = get_string('error_drmnotconfigured', 'mod_fastpix');
+        }
+
+        // Captions: auto requires a language; vtt requires an uploaded .vtt file.
+        // Custom-HTML controls arrive via POST (tests pass them on $data).
+        $capenabled = isset($data['captionsenabled'])
+            ? !empty($data['captionsenabled'])
+            : (bool)optional_param('captionsenabled', 0, PARAM_BOOL);
+        if ($capenabled) {
+            $mode = $data['captionsmode'] ?? optional_param('captionsmode', 'auto', PARAM_ALPHA);
+            if ($mode === 'auto') {
+                $lang = $data['languagecode'] ?? optional_param('languagecode', '', PARAM_ALPHA);
+                $valid = array_merge(self::CAPTION_LANGS_SUPPORTED, self::CAPTION_LANGS_BETA);
+                if ($lang === '' || !in_array($lang, $valid, true)) {
+                    $errors['name'] = get_string('error_languagerequired', 'mod_fastpix');
+                }
+            } else if ($mode === 'vtt') {
+                $draftid = (int)($data['captionsfile'] ?? optional_param('captionsfile', 0, PARAM_INT));
+                $hasfile = false;
+                if ($draftid > 0) {
+                    require_once($GLOBALS['CFG']->libdir . '/filelib.php');
+                    $info = file_get_draft_area_info($draftid);
+                    $hasfile = !empty($info['filecount']);
+                }
+                if (!$hasfile) {
+                    $errors['name'] = get_string('error_vttrequired', 'mod_fastpix');
+                }
             }
         }
 

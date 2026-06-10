@@ -108,5 +108,25 @@ function xmldb_fastpix_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026051302, 'fastpix');
     }
 
+    if ($oldversion < 2026060801) {
+        // Media settings — access policy + caption source columns on mdl_fastpix.
+        // Numeric/char DEFAULTs are supported in-schema, so a single add_field
+        // each (guarded by field_exists for idempotency) is enough.
+        $table = new xmldb_table('fastpix');
+
+        $fields = [
+            new xmldb_field('access_policy', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, 'private', 'default_show_captions'),
+            new xmldb_field('captions_mode', XMLDB_TYPE_CHAR, '8', null, XMLDB_NOTNULL, null, 'none', 'access_policy'),
+            new xmldb_field('language_code', XMLDB_TYPE_CHAR, '8', null, null, null, null, 'captions_mode'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026060801, 'fastpix');
+    }
+
     return true;
 }

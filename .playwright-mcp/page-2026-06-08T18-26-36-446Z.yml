@@ -1,0 +1,478 @@
+- generic [ref=e1]:
+  - status
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#maincontent"
+    - navigation "Site navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "dev" [ref=e6] [cursor=pointer]:
+          - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/my/
+        - navigation [ref=e8]:
+          - menubar [ref=e9]:
+            - menuitem "Home" [ref=e10] [cursor=pointer]
+            - menuitem "Dashboard" [ref=e11] [cursor=pointer]
+            - menuitem "My courses" [ref=e12] [cursor=pointer]
+            - menuitem "Site administration" [ref=e13] [cursor=pointer]
+            - text: 
+        - generic [ref=e14]:
+          - button "Show notification window with 2 new notifications" [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: "2"
+          - button "Toggle messaging drawer" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+          - button "User menu" [ref=e26] [cursor=pointer]:
+            - img "Admin User" [ref=e30]: AU
+            - text: 
+          - generic [ref=e33]:
+            - generic [ref=e34]: Edit mode
+            - checkbox "Edit mode" [ref=e36]
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - button "Close course index" [ref=e239] [cursor=pointer]:
+          - generic [ref=e240]: 
+        - generic [ref=e242]:
+          - button "Course index options" [ref=e243] [cursor=pointer]:
+            - generic [ref=e244]: 
+          - text:   
+      - navigation [ref=e40]:
+        - tree [ref=e245]:
+          - treeitem "Collapse General" [selected] [ref=e246]:
+            - generic [ref=e247]:
+              - link "Collapse" [expanded] [ref=e248] [cursor=pointer]:
+                - /url: "#courseindexcollapse0"
+                - text:  
+                - generic "Collapse" [ref=e249]:
+                  - generic [ref=e250]: 
+                  - generic [ref=e251]: Collapse
+              - link "General" [ref=e252] [cursor=pointer]:
+                - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=83
+              - text: 
+            - group "Collapse General" [ref=e253]:
+              - group [ref=e254]:
+                - treeitem "Announcements" [ref=e255]:
+                  - link "Announcements" [ref=e257] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/forum/view.php?id=50
+                  - text: 
+                - treeitem "Private video" [ref=e258]:
+                  - link "Private video" [ref=e260] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/view.php?id=51
+                  - text: 
+          - treeitem "Collapse New section" [ref=e261]:
+            - generic [ref=e262]:
+              - link "Collapse" [expanded] [ref=e263] [cursor=pointer]:
+                - /url: "#courseindexcollapse1"
+                - text:  
+                - generic "Collapse" [ref=e264]:
+                  - generic [ref=e265]: 
+                  - generic [ref=e266]: Collapse
+              - link "New section" [ref=e267] [cursor=pointer]:
+                - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=84
+              - text: 
+            - group "Collapse New section" [ref=e268]:
+              - group [ref=e269]:
+                - treeitem "Drm test" [ref=e270]:
+                  - link "Drm test" [ref=e272] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/view.php?id=52
+                  - text: 
+          - treeitem "Collapse New section" [ref=e273]:
+            - generic [ref=e274]:
+              - link "Collapse" [expanded] [ref=e275] [cursor=pointer]:
+                - /url: "#courseindexcollapse2"
+                - text:  
+                - generic "Collapse" [ref=e276]:
+                  - generic [ref=e277]: 
+                  - generic [ref=e278]: Collapse
+              - link "New section" [ref=e279] [cursor=pointer]:
+                - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=85
+              - text: 
+            - group "Collapse New section" [ref=e280]:
+              - group [ref=e281]:
+                - treeitem "gdfs" [ref=e282]:
+                  - link "gdfs" [ref=e284] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/view.php?id=53
+                  - text: 
+          - treeitem "Collapse New section" [ref=e285]:
+            - generic [ref=e286]:
+              - link "Collapse" [expanded] [ref=e287] [cursor=pointer]:
+                - /url: "#courseindexcollapse3"
+                - text:  
+                - generic "Collapse" [ref=e288]:
+                  - generic [ref=e289]: 
+                  - generic [ref=e290]: Collapse
+              - link "New section" [ref=e291] [cursor=pointer]:
+                - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=86
+              - text: 
+            - group "Collapse New section" [ref=e292]:
+              - group [ref=e293]:
+                - treeitem "Public demo video" [ref=e294]:
+                  - link "Public demo video" [ref=e296] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/view.php?id=54
+                  - text: 
+                - treeitem "Filter Plugin Demo" [ref=e297]:
+                  - link "Filter Plugin Demo" [ref=e299] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/assign/view.php?id=80
+                  - text: 
+          - treeitem "Collapse New section" [ref=e300]:
+            - generic [ref=e301]:
+              - link "Collapse" [expanded] [ref=e302] [cursor=pointer]:
+                - /url: "#courseindexcollapse4"
+                - text:  
+                - generic "Collapse" [ref=e303]:
+                  - generic [ref=e304]: 
+                  - generic [ref=e305]: Collapse
+              - link "New section" [ref=e306] [cursor=pointer]:
+                - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=87
+              - text: 
+            - group "Collapse New section" [ref=e307]:
+              - group [ref=e308]:
+                - treeitem "To do Sample Quiz" [ref=e309]:
+                  - img "To do" [ref=e311]: 
+                  - link "Sample Quiz" [ref=e312] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/quiz/view.php?id=81
+                  - text: 
+                - 'treeitem "{fastpix:pb_df82083b-ee0b-4f70-9116-49eb8aca82ce}" [ref=e313]':
+                  - 'link "{fastpix:pb_df82083b-ee0b-4f70-9116-49eb8aca82ce}" [ref=e315] [cursor=pointer]':
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=87#module-82
+                  - text: 
+    - generic [ref=e60]:
+      - generic [ref=e61]:
+        - generic: 
+        - banner [ref=e62]:
+          - heading "Demo-course" [level=1] [ref=e69]
+        - navigation [ref=e71]:
+          - menubar [ref=e72]:
+            - menuitem "Course" [ref=e73] [cursor=pointer]
+            - menuitem "Settings" [ref=e74] [cursor=pointer]
+            - menuitem "Participants" [ref=e75] [cursor=pointer]
+            - menuitem "Grades" [ref=e76] [cursor=pointer]
+            - menuitem "Reports" [ref=e77] [cursor=pointer]
+            - menuitem "More " [ref=e316] [cursor=pointer]
+        - main [ref=e91]:
+          - heading "New FastPix Video" [level=2] [ref=e93]
+          - generic [ref=e94]:
+            - button "Collapse all" [expanded] [ref=e419] [cursor=pointer]:
+              - generic [ref=e420]: Collapse all
+            - group "General" [ref=e98]:
+              - generic [ref=e99]: General
+              - generic [ref=e101]:
+                - button "General" [expanded] [ref=e102] [cursor=pointer]:
+                  - generic "Collapse" [ref=e103]:
+                    - generic [ref=e104]: 
+                  - text:  
+                  - generic [ref=e105]: General
+                - heading [level=3] [ref=e106]: General
+              - generic [ref=e107]:
+                - generic [ref=e108]:
+                  - generic [ref=e109]:
+                    - generic [ref=e110]: Activity name
+                    - generic [ref=e113]: 
+                  - textbox "Activity name" [ref=e115]: Direct Upload Playback Test
+                - generic [ref=e116]:
+                  - generic [ref=e118]: Description
+                  - application [ref=e317]:
+                    - generic [ref=e318]:
+                      - generic [ref=e319]:
+                        - menubar [ref=e320]:
+                          - menuitem "Edit" [ref=e321] [cursor=pointer]:
+                            - generic [ref=e322]: Edit
+                          - menuitem "View" [ref=e323] [cursor=pointer]:
+                            - generic [ref=e324]: View
+                          - menuitem "Insert" [ref=e325] [cursor=pointer]:
+                            - generic [ref=e326]: Insert
+                          - menuitem "Format" [ref=e327] [cursor=pointer]:
+                            - generic [ref=e328]: Format
+                          - menuitem "Tools" [ref=e329] [cursor=pointer]:
+                            - generic [ref=e330]: Tools
+                          - menuitem "Table" [ref=e331] [cursor=pointer]:
+                            - generic [ref=e332]: Table
+                          - menuitem "Help" [ref=e333] [cursor=pointer]:
+                            - generic [ref=e334]: Help
+                        - group [ref=e335]:
+                          - group [ref=e336]:
+                            - toolbar "history" [ref=e337]:
+                              - button "Undo" [disabled] [ref=e338]:
+                                - img [ref=e340]
+                              - button "Redo" [disabled] [ref=e342]:
+                                - img [ref=e344]
+                            - toolbar "formatting" [ref=e346]:
+                              - button "Bold" [ref=e347] [cursor=pointer]:
+                                - img [ref=e349]
+                              - button "Italic" [ref=e351] [cursor=pointer]:
+                                - img [ref=e353]
+                            - toolbar "content" [ref=e355]:
+                              - button "Image" [ref=e356] [cursor=pointer]:
+                                - img [ref=e358]
+                              - button "Multimedia" [ref=e360] [cursor=pointer]:
+                                - img [ref=e362]
+                              - button "Record audio" [ref=e364] [cursor=pointer]:
+                                - img [ref=e366]
+                              - button "Record video" [ref=e368] [cursor=pointer]:
+                                - img [ref=e370]
+                              - button "Insert FastPix video" [ref=e372] [cursor=pointer]:
+                                - img [ref=e374]
+                              - button "Insert H5P content" [ref=e376] [cursor=pointer]:
+                                - img [ref=e378]
+                              - button "Link" [ref=e380] [cursor=pointer]:
+                                - img [ref=e382]
+                              - button "Unlink" [ref=e384] [cursor=pointer]:
+                                - img [ref=e386]
+                            - toolbar "view" [ref=e388]:
+                              - button "Fullscreen" [ref=e389] [cursor=pointer]:
+                                - img [ref=e391]
+                            - toolbar [ref=e393]:
+                              - button "Reveal or hide additional toolbar items" [ref=e394] [cursor=pointer]:
+                                - img [ref=e396]
+                      - iframe [ref=e400]:
+                        - generic "Rich text area. Press ALT-0 for help." [active] [ref=f3e1]:
+                          - paragraph [ref=f3e2]
+                    - generic [ref=e401]:
+                      - generic [ref=e402]:
+                        - navigation [ref=e403]:
+                          - button "p" [ref=e404]
+                        - generic [ref=e405]:
+                          - button "0 words" [ref=e406] [cursor=pointer]
+                          - link "Build with TinyMCE" [ref=e408]:
+                            - /url: https://www.tiny.cloud/powered-by-tiny?utm_campaign=poweredby&utm_source=tiny&utm_medium=referral&utm_content=v7
+                            - text: Build with
+                            - img [ref=e409]
+                      - generic "Press the Up and Down arrow keys to resize the editor." [ref=e415]:
+                        - img [ref=e416]
+                - generic [ref=e126]:
+                  - checkbox "Display description on course page" [ref=e127]
+                  - generic [ref=e128]: Display description on course page
+                  - button "Help" [ref=e130] [cursor=pointer]:
+                    - img "Help with Display description on course page" [ref=e131]: 
+            - group "Media settings" [ref=e132]:
+              - generic [ref=e133]: Media settings
+              - generic [ref=e135]:
+                - button "Media settings" [expanded] [ref=e136] [cursor=pointer]:
+                  - generic "Collapse" [ref=e421]:
+                    - generic [ref=e422]: 
+                  - text:  
+                  - generic [ref=e140]: Media settings
+                - heading [level=3] [ref=e141]: Media settings
+              - generic [ref=e423]:
+                - generic [ref=e424]:
+                  - img [ref=e426]
+                  - generic [ref=e429]:
+                    - generic [ref=e430]: Protection & captions
+                    - generic [ref=e431]: How this video is protected and captioned. These settings are applied when the video is uploaded to FastPix.
+                - generic [ref=e432]:
+                  - generic [ref=e433]: Access policy
+                  - radiogroup "Access policy" [ref=e434]:
+                    - radio "Private" [checked]
+                    - generic [ref=e435] [cursor=pointer]: Private
+                    - radio "Public"
+                    - generic [ref=e436] [cursor=pointer]: Public
+                    - radio "DRM"
+                    - generic [ref=e437] [cursor=pointer]: DRM
+                    - paragraph [ref=e438]: Only logged-in learners can play. Recommended.
+                - generic [ref=e439]:
+                  - checkbox "Captions & transcript"
+                  - radio "Auto-generate" [checked]
+                  - radio "Upload .vtt file"
+                  - generic [ref=e440]:
+                    - img [ref=e442]
+                    - generic [ref=e444]:
+                      - generic [ref=e445]: Captions & transcript
+                      - generic [ref=e446]: Auto-generate from the audio, or upload your own .vtt file.
+            - group "Video source" [ref=e142]:
+              - generic [ref=e143]: Video source
+              - generic [ref=e145]:
+                - button "Video source" [expanded] [ref=e146] [cursor=pointer]:
+                  - generic "Collapse" [ref=e448]:
+                    - generic [ref=e449]: 
+                  - text:  
+                  - generic [ref=e150]: Video source
+                - heading [level=3] [ref=e151]: Video source
+              - generic [ref=e450]:
+                - generic [ref=e451]:
+                  - img [ref=e453]
+                  - generic [ref=e456]:
+                    - generic [ref=e457]: Upload a video
+                    - generic [ref=e458]: Upload from your device or pull from a public URL. Either method goes directly to FastPix — Moodle never stores the video bytes.
+                - generic [ref=e460]:
+                  - generic "Drag & drop video and audio or" [ref=e461]:
+                    - button "Choose File" [ref=e462] [cursor=pointer]
+                    - img [ref=e464]
+                    - paragraph [ref=e467]:
+                      - text: Drag & drop video and audio or
+                      - link "Browse" [active] [ref=e468] [cursor=pointer]:
+                        - /url: "#"
+                    - paragraph [ref=e469]: You can upload multiple files at once.
+                  - generic [ref=e612]:
+                    - generic [ref=e613]:
+                      - generic [ref=e614]: Uploading your video…
+                      - generic [ref=e615]: 38%
+                    - progressbar
+                  - paragraph [ref=e470]: Or upload using video URL
+                  - generic [ref=e471]:
+                    - textbox "Paste your video URL here…" [ref=e472]
+                    - button "Upload" [ref=e473] [cursor=pointer]
+            - group "Playback options" [ref=e152]:
+              - generic [ref=e153]: Playback options
+              - generic [ref=e155]:
+                - button "Playback options" [expanded] [ref=e156] [cursor=pointer]:
+                  - generic "Collapse" [ref=e474]:
+                    - generic [ref=e475]: 
+                  - text:  
+                  - generic [ref=e160]: Playback options
+                - heading [level=3] [ref=e161]: Playback options
+              - generic [ref=e476]:
+                - generic [ref=e477]:
+                  - img [ref=e479]
+                  - generic [ref=e482]:
+                    - generic [ref=e483]: Player behaviour
+                    - paragraph [ref=e484]: Control how learners interact with the video during playback. These settings apply to this activity only.
+                - generic [ref=e485]:
+                  - generic [ref=e486]:
+                    - img [ref=e488]
+                    - generic [ref=e491]: Disable seeking
+                    - checkbox [ref=e493] [cursor=pointer]
+                    - generic [ref=e494]: Prevent students from skipping ahead during playback.
+                  - generic [ref=e495]:
+                    - img [ref=e497]
+                    - generic [ref=e500]: Show captions by default
+                    - checkbox [ref=e502] [cursor=pointer]
+                    - generic [ref=e503]: Captions will be displayed when the video starts.
+            - group "Common module settings" [ref=e162]:
+              - generic [ref=e163]: Common module settings
+              - generic [ref=e165]:
+                - button "Common module settings" [expanded] [ref=e166] [cursor=pointer]:
+                  - generic "Collapse" [ref=e504]:
+                    - generic [ref=e505]: 
+                  - text:  
+                  - generic [ref=e170]: Common module settings
+                - heading [level=3] [ref=e171]: Common module settings
+              - generic [ref=e506]:
+                - generic [ref=e507]:
+                  - generic [ref=e508]:
+                    - generic [ref=e509]: Availability
+                    - button "Help" [ref=e511] [cursor=pointer]:
+                      - img "Help with Availability" [ref=e512]: 
+                  - combobox "Availability" [ref=e514]:
+                    - option "Show on course page" [selected]
+                    - option "Hide on course page"
+                - generic [ref=e515]:
+                  - generic [ref=e516]:
+                    - generic [ref=e517]: ID number
+                    - button "Help" [ref=e519] [cursor=pointer]:
+                      - img "Help with ID number" [ref=e520]: 
+                  - textbox "ID number" [ref=e522]
+                - generic [ref=e523]:
+                  - generic [ref=e525]: Force language
+                  - combobox "Force language" [ref=e527]:
+                    - option "Do not force" [selected]
+                    - option "English ‎(en)‎"
+                - generic [ref=e528]:
+                  - generic [ref=e529]:
+                    - generic [ref=e530]: Group mode
+                    - button "Help" [ref=e532] [cursor=pointer]:
+                      - img "Help with Group mode" [ref=e533]: 
+                  - combobox "Group mode" [ref=e535]:
+                    - option "No groups" [selected]
+                    - option "Separate groups"
+                    - option "Visible groups"
+                - text: 
+                - button "Add group/grouping access restriction" [disabled] [ref=e540]
+            - group "Restrict access" [ref=e172]:
+              - generic [ref=e173]: Restrict access
+              - generic [ref=e175]:
+                - button "Restrict access" [expanded] [ref=e176] [cursor=pointer]:
+                  - generic "Collapse" [ref=e541]:
+                    - generic [ref=e542]: 
+                  - text:  
+                  - generic [ref=e180]: Restrict access
+                - heading [level=3] [ref=e181]: Restrict access
+              - generic [ref=e544]:
+                - generic [ref=e546]: Access restrictions
+                - generic [ref=e549]:
+                  - heading "Set of 0 restriction(s)" [level=3] [ref=e550]
+                  - generic [ref=e551]:
+                    - generic [ref=e552]: None
+                    - button "Add restriction..." [ref=e554] [cursor=pointer]
+            - group "Completion conditions" [ref=e182]:
+              - generic [ref=e183]: Completion conditions
+              - generic [ref=e185]:
+                - button "Completion conditions" [expanded] [ref=e186] [cursor=pointer]:
+                  - generic "Collapse" [ref=e556]:
+                    - generic [ref=e557]: 
+                  - text:  
+                  - generic [ref=e190]: Completion conditions
+                - heading [level=3] [ref=e191]: Completion conditions
+              - generic [ref=e558]:
+                - generic [ref=e563]:
+                  - radio "None" [checked] [ref=e564]
+                  - text: None
+                - generic [ref=e569]:
+                  - radio "Students must manually mark the activity as done" [ref=e570]
+                  - text: Students must manually mark the activity as done
+                - generic [ref=e575]:
+                  - radio "Add requirements" [ref=e576]
+                  - text: Add requirements
+                - text:  
+            - group "Tags" [ref=e192]:
+              - generic [ref=e193]: Tags
+              - generic [ref=e195]:
+                - button "Tags" [expanded] [ref=e196] [cursor=pointer]:
+                  - generic "Collapse" [ref=e577]:
+                    - generic [ref=e578]: 
+                  - text:  
+                  - generic [ref=e200]: Tags
+                - heading [level=3] [ref=e201]: Tags
+              - generic [ref=e580]:
+                - generic [ref=e582]: Tags
+                - generic [ref=e583]:
+                  - link "Manage standard tags" [ref=e584] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/tag/manage.php?tc=1
+                  - generic [ref=e585]: "Selected items:"
+                  - status [ref=e586]
+                  - listbox "Selected items:" [ref=e587]: No selection
+                  - generic [ref=e588]:
+                    - combobox "Tags" [ref=e589]
+                    - generic [ref=e590] [cursor=pointer]: ▼
+            - group "Competencies" [ref=e202]:
+              - generic [ref=e203]: Competencies
+              - generic [ref=e205]:
+                - button "Competencies" [expanded] [ref=e206] [cursor=pointer]:
+                  - generic "Collapse" [ref=e591]:
+                    - generic [ref=e592]: 
+                  - text:  
+                  - generic [ref=e210]: Competencies
+                - heading [level=3] [ref=e211]: Competencies
+              - generic [ref=e593]:
+                - generic [ref=e594]:
+                  - generic [ref=e595]:
+                    - generic [ref=e596]: Course competencies
+                    - button "Help" [ref=e598] [cursor=pointer]:
+                      - img "Help with Course competencies" [ref=e599]: 
+                  - generic [ref=e600]:
+                    - generic [ref=e601]: "Selected items:"
+                    - status [ref=e602]
+                    - listbox "Selected items:" [ref=e603]: No selection
+                    - generic [ref=e604]:
+                      - combobox "Course competencies" [ref=e605]
+                      - generic [ref=e606] [cursor=pointer]: ▼
+                - generic [ref=e607]:
+                  - generic [ref=e609]: "Upon activity completion:"
+                  - combobox "Upon activity completion:" [ref=e611]:
+                    - option "Do nothing" [selected]
+                    - option "Attach evidence"
+                    - option "Send for review"
+                    - option "Complete the competency"
+            - generic [ref=e215]:
+              - checkbox "Send content change notification" [ref=e216]
+              - generic [ref=e217]: Send content change notification
+              - button "Help" [ref=e219] [cursor=pointer]:
+                - img "Help with Send content change notification" [ref=e220]: 
+            - generic [ref=e225]:
+              - button "Save and return to course" [ref=e228] [cursor=pointer]
+              - button "Save and display" [ref=e231] [cursor=pointer]
+              - button "Cancel" [ref=e234] [cursor=pointer]
+            - generic [ref=e235]:
+              - generic [ref=e236]: 
+              - text: Required
+      - contentinfo:
+        - button "Show footer" [ref=e237] [cursor=pointer]:
+          - generic [ref=e238]: "?"
+        - text:    

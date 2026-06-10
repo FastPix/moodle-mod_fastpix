@@ -23,6 +23,10 @@ tracker, completion and gradebook integration, and backup/restore.
 - Resumable chunked uploads with a live progress bar, so large files
   survive an unreliable connection.
 - URL-pull sources are validated by the `local_fastpix` SSRF guard.
+- **Protection & captions** per activity: choose an access policy
+  (Private / Public / DRM) and a captions mode — auto-generate in a
+  chosen language, or upload your own WebVTT (`.vtt`) subtitle file.
+  These are applied to the video when it is uploaded to FastPix.
 
 ### Playback experience
 
@@ -53,6 +57,17 @@ tracker, completion and gradebook integration, and backup/restore.
   they do not silently block the student.
 - An optional **Disable seeking** mode rejects forward seeks for
   compliance and assessment videos.
+
+### Reporting and analytics
+
+- A **Watch report** for teachers (capability `mod/fastpix:viewallattempts`),
+  reachable from a tab on the activity.
+- Per-video view: unique viewers, average watched %, completion rate, the
+  biggest drop-off point, an engagement curve, and a per-student table.
+- Per-user view: one student's engagement across every FastPix video in the
+  course.
+- CSV export on both. The report is read-only — it surfaces the watch data
+  already recorded, with no extra tracking and no calls to FastPix.
 
 ### Backup, restore, and privacy
 
@@ -147,7 +162,9 @@ needed once `local_fastpix` is connected.
 In the **Video source** section, drag a file onto the drop zone or select
 it from your device. When the progress bar reaches 100%, select **Save and
 display** to commit. Uploading requires the `mod/fastpix:uploadmedia`
-capability, which editing teachers hold by default.
+capability, which editing teachers hold by default; it is checked at the
+**course** context, and the upload is tagged to that course. Students
+enrolled in the course can view the video but cannot upload or embed.
 
 ### Pull from a URL
 

@@ -1,0 +1,82 @@
+- generic [active] [ref=e1]:
+  - status
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#maincontent"
+    - navigation "Site navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "dev" [ref=e6] [cursor=pointer]:
+          - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/my/
+        - navigation [ref=e8]:
+          - menubar [ref=e9]:
+            - menuitem "Home" [ref=e10] [cursor=pointer]
+            - menuitem "Dashboard" [ref=e11] [cursor=pointer]
+            - menuitem "My courses" [ref=e12] [cursor=pointer]
+            - menuitem "Site administration" [ref=e13] [cursor=pointer]
+            - text: 
+        - generic [ref=e14]:
+          - button "Show notification window with 2 new notifications" [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: "2"
+          - button "Toggle messaging drawer" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+          - button "User menu" [ref=e26] [cursor=pointer]:
+            - img "Admin User" [ref=e30]: AU
+            - text: 
+          - generic [ref=e33]:
+            - generic [ref=e34]: Edit mode
+            - checkbox "Edit mode" [ref=e36]
+    - generic [ref=e37]:
+      - generic [ref=e38]:     
+      - navigation [ref=e40]:
+        - list [ref=e43]:
+          - listitem [ref=e44]
+          - listitem [ref=e48]
+          - listitem [ref=e52]
+          - listitem [ref=e56]
+    - generic [ref=e60]:
+      - generic [ref=e61]:
+        - generic: 
+        - banner [ref=e62]:
+          - generic [ref=e63]:
+            - navigation "Breadcrumb" [ref=e66]:
+              - list [ref=e67]:
+                - listitem [ref=e68]:
+                  - link "qad" [ref=e69] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/view.php?id=10
+                - listitem [ref=e70]:
+                  - text: /
+                  - link "New section" [ref=e71] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=41
+                - listitem [ref=e72]: / test video
+            - generic [ref=e76]:
+              - img [ref=e79]
+              - heading "test video" [level=1] [ref=e81]
+        - navigation [ref=e83]:
+          - menubar [ref=e84]:
+            - menuitem "FastPix Video" [ref=e85] [cursor=pointer]
+            - menuitem "Settings" [ref=e86] [cursor=pointer]
+            - menuitem "Filters" [ref=e87] [cursor=pointer]
+            - menuitem "Permissions" [ref=e88] [cursor=pointer]
+            - menuitem "Logs" [ref=e89] [cursor=pointer]
+            - menuitem "Backup" [ref=e90] [cursor=pointer]
+            - menuitem "Restore" [ref=e91] [cursor=pointer]
+            - text: 
+        - generic [ref=e94]:
+          - generic [ref=e96]:
+            - generic [ref=e97]: Completion requirements
+            - paragraph [ref=e100]: test video
+          - main [ref=e101]:
+            - heading "test video — Watch report" [level=2] [ref=e102]
+            - generic [ref=e103]:
+              - generic [ref=e104]:
+                - link "« Back to class report" [ref=e105] [cursor=pointer]:
+                  - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/report.php?id=30&mode=video
+                - link "Download (CSV)" [ref=e106] [cursor=pointer]:
+                  - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/report.php?id=30&mode=user&userid=3&download=csv
+              - heading "Watch activity for Tharun Budidha" [level=3] [ref=e107]
+              - generic [ref=e108]: This student has no watch activity in this course.
+      - contentinfo:
+        - button "Show footer" [ref=e109] [cursor=pointer]:
+          - generic [ref=e110]: "?"
+        - text:    

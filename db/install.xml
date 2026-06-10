@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/fastpix/db" VERSION="20260508" COMMENT="XMLDB file for Moodle mod_fastpix"
+<XMLDB PATH="mod/fastpix/db" VERSION="20260608" COMMENT="XMLDB file for Moodle mod_fastpix"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -16,6 +16,9 @@
         <FIELD NAME="completion_watch_percent" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="90" SEQUENCE="false"/>
         <FIELD NAME="no_skip_required" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="default_show_captions" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="access_policy" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="private" SEQUENCE="false" COMMENT="FastPix access policy for the asset: private | public | drm. Consumed by local_fastpix create_upload_session."/>
+        <FIELD NAME="captions_mode" TYPE="char" LENGTH="8" NOTNULL="true" DEFAULT="none" SEQUENCE="false" COMMENT="Caption source: none | auto (FastPix auto-generate) | vtt (teacher-uploaded WebVTT)."/>
+        <FIELD NAME="language_code" TYPE="char" LENGTH="8" NOTNULL="false" SEQUENCE="false" COMMENT="ISO language code for auto-generated captions; NULL unless captions_mode=auto."/>
         <FIELD NAME="grademax" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" DECIMALS="5"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>

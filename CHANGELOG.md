@@ -4,6 +4,45 @@ All notable changes to `mod_fastpix` are documented here. Format follows [Keep a
 
 ---
 
+## [v1.1.0] — 2026-06-10
+
+Feature release: media-protection + caption settings on the activity form,
+teacher watch analytics, and asset reference counting — plus a course-context
+upload fix that restores teacher uploads.
+
+### Added
+
+**Media settings (mod_form.php)**
+- New **Protection & captions** section on the activity form.
+- **Access policy** — Private / Public / DRM segmented control (default Private). DRM is only selectable when the site has DRM configured.
+- **Captions & transcript** — a toggle with two modes: **Auto-generate** (language picker: `en`/`es`/`it`/`pt`/`de`/`fr`, plus beta languages) or **Upload .vtt** (a drag-and-drop dropzone backed by the new `mod_fastpix/captions_upload` AMD module, uploading to a Moodle draft area).
+- Three new columns on `mdl_fastpix` — `access_policy`, `captions_mode`, `language_code` — with a `db/upgrade.php` step. These feed `local_fastpix`'s `create_upload_session` at upload time (the title is taken from the activity name).
+
+**Watch reports / analytics (report.php)**
+- A **Watch report** secondary-navigation tab on the activity, gated by `mod/fastpix:viewallattempts`.
+- **Per-video report** — unique viewers, average watched %, completion rate, biggest drop-off, an engagement curve (inline SVG with a fixed 0–100 axis), and a per-student table (watch %, watch time, milestones, completed, last position, seeks, fraud flags).
+- **Per-user report** — one student's engagement across every FastPix video in the course.
+- **CSV export** on both reports via `\core\dataformat`.
+- New `\mod_fastpix\report\watch_report` aggregation service, renderer methods, and `report_video` / `report_user` templates. Display-only — no new tracking, no FastPix calls.
+
+**Asset reference counting**
+- `mod_fastpix` now registers a reference with `local_fastpix` (`mod_fastpix:<activityid>`) when an activity links a video, and releases it on delete or asset-swap, through `asset_lifecycle_service`. `local_fastpix` soft-deletes the asset only when its last reference is released. The calls are fail-safe — a missing or throwing service never blocks a save or delete.
+
+### Changed
+
+**Upload context (mod_form.php + amd/src/upload_widget.js)**
+- The upload widget now receives the **course** context id instead of the system context, and forwards `contextid` to `local_fastpix`'s `create_upload_session` / `create_url_pull_session`. Upload permission (`mod/fastpix:uploadmedia`) is enforced at the course context, and uploads are tagged to their course.
+- `create_upload_session` arguments updated to the new contract (`contextid`, `title`, `accesspolicy`, `captionsmode`, `languagecode`) and its no-underscore return fields (`uploadurl` / `uploadid`).
+- `local_fastpix` dependency pinned to `2026061009`; `release` is now `1.1.0`.
+
+### Fixed
+- **Teachers could not upload from the activity form.** Upload permission was checked at the *system* context — where editing teachers hold no role — instead of the course context, so every upload was denied. It is now checked at the course context; students enrolled in the course still cannot upload or embed but can view.
+- **"Invalid parameter value detected" on upload.** The widget was sending stale arguments (`filename`, `size`) to `create_upload_session`; it now sends the required `title` / `accesspolicy` / `captionsmode` / `languagecode`, and reads the `uploadurl` / `uploadid` return fields.
+- **Engagement chart auto-scaled** instead of showing a fixed 0–100 range (Moodle's chart API passes the bound as Chart.js v2 `ticks.min/max`, which the bundled Chart.js v4 ignores). Replaced with an inline SVG locked to 0–100.
+- **The "Watch report" link never rendered** — the navigation callback short-circuited on `empty($PAGE->cm)`, which is always true for that magic property (`moodle_page` has `__get` but no `__isset` for `cm`).
+
+---
+
 ## [v1.0.0] — 2026-05-14
 
 First production release.
