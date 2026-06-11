@@ -113,10 +113,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 110]], // Ends past asset duration (100).
-            110.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 110]], // Ends past asset duration (100).
+                'position'  => 110.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -136,10 +138,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 61]], // 61s claimed; elapsed=50; 61 > 50+10
-            61.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 61]], // 61s claimed; elapsed=50; 61 > 50+10
+                'position'  => 61.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -156,10 +160,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 59]],
-            59.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 59]],
+                'position'  => 59.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -184,10 +190,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 20]],
-            20.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 20]],
+                'position'  => 20.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -213,10 +221,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 46]], // Gain=16; wall=5; 16 > 5+10 → fraud.
-            46.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 46]], // Gain=16; wall=5; 16 > 5+10 → fraud.
+                'position'  => 46.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -239,10 +249,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 44]],
-            44.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 44]],
+                'position'  => 44.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -267,10 +279,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 5]],
-            5.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 5]],
+                'position'  => 5.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -288,10 +302,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 5]],
-            5.0,
-            false, /* client_seek_count */
-            1,
+            (object)[
+                'intervals' => [[0, 5]],
+                'position'  => 5.0,
+                'ended'     => false,
+                'seekcount' => 1,
+            ],
             $context,
             $now
         );
@@ -307,10 +323,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 5]],
-            5.0,
-            false, /* client_seek_count */
-            1,
+            (object)[
+                'intervals' => [[0, 5]],
+                'position'  => 5.0,
+                'ended'     => false,
+                'seekcount' => 1,
+            ],
             $context,
             $now
         );
@@ -358,10 +376,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 5]],
-            5.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 5]],
+                'position'  => 5.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -382,10 +402,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 5]],
-            5.5,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 5]],
+                'position'  => 5.5,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -403,10 +425,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 5]],
-            5.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 5]],
+                'position'  => 5.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -425,10 +449,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 25]],
-            25.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 25]],
+                'position'  => 25.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -441,10 +467,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $reloaded,
             $asset,
-            [[0, 25]],
-            25.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 25]],
+                'position'  => 25.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now + 5
         );
@@ -462,10 +490,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 55]],
-            55.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 55]],
+                'position'  => 55.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -491,10 +521,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 5]],
-            5.0, /* ended_fired */
-            true,
-            0,
+            (object)[
+                'intervals' => [[0, 5]],
+                'position'  => 5.0,
+                'ended'     => true,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -521,10 +553,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[100, 110]],
-            110.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[100, 110]],
+                'position'  => 110.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -542,10 +576,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 110]],
-            110.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 110]],
+                'position'  => 110.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -563,10 +599,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 110]],
-            110.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 110]],
+                'position'  => 110.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -585,10 +623,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 999]], // Exceeds_duration AND exceeds_wall_clock.
-            999.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 999]], // Exceeds_duration AND exceeds_wall_clock.
+                'position'  => 999.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -609,10 +649,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 55]],
-            55.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 55]],
+                'position'  => 55.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -627,10 +669,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $reloaded,
             $asset,
-            [[0, 55]],
-            55.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 55]],
+                'position'  => 55.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now + 1
         );
@@ -650,10 +694,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 55]],
-            55.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 55]],
+                'position'  => 55.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -681,10 +727,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 55]],
-            55.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 55]],
+                'position'  => 55.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -711,10 +759,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[100, 110]], // Max_end=110 > duration=100 → fraud.
-            110.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[100, 110]], // Max_end=110 > duration=100 → fraud.
+                'position'  => 110.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -743,10 +793,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 55]],
-            55.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 55]],
+                'position'  => 55.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -776,10 +828,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 20]], // Client claims less than server has.
-            20.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 20]], // Client claims less than server has.
+                'position'  => 20.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -815,10 +869,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 99.97]],
-            99.97, /* ended_fired */
-            true,
-            0,
+            (object)[
+                'intervals' => [[0, 99.97]],
+                'position'  => 99.97,
+                'ended'     => true,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -848,10 +904,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 5]],
-            5.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 5]],
+                'position'  => 5.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -867,10 +925,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[5, 15]],
-            15.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[5, 15]],
+                'position'  => 15.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now + 30
         );
@@ -904,10 +964,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 30]],
-            30.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 30]],
+                'position'  => 30.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -924,10 +986,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 30], [40, 100]],
-            100.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 30], [40, 100]],
+                'position'  => 100.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now2
         );
@@ -954,10 +1018,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $attempt,
             $asset,
-            [[0, 55]],
-            55.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 55]],
+                'position'  => 55.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now
         );
@@ -977,10 +1043,12 @@ final class watch_tracker_service_test extends \advanced_testcase {
             $activity,
             $reloaded,
             $asset,
-            [[0, 80]],
-            80.0,
-            false,
-            0,
+            (object)[
+                'intervals' => [[0, 80]],
+                'position'  => 80.0,
+                'ended'     => false,
+                'seekcount' => 0,
+            ],
             $context,
             $now + 30
         );

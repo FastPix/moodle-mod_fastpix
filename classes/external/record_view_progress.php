@@ -183,10 +183,12 @@ class record_view_progress extends external_api {
             $activity,
             $attempt,
             $asset,
-            $cleanintervals,
-            (float)$params['current_position'],
-            (bool)$params['ended_fired'],
-            (int)$params['client_seek_count'],
+            (object)[
+                'intervals' => $cleanintervals,
+                'position'  => (float)$params['current_position'],
+                'ended'     => (bool)$params['ended_fired'],
+                'seekcount' => (int)$params['client_seek_count'],
+            ],
             $context,
             time()
         );

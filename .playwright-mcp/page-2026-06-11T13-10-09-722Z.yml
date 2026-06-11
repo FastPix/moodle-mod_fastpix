@@ -1,0 +1,131 @@
+- generic [active] [ref=e1]:
+  - status
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#maincontent"
+    - navigation "Site navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "dev" [ref=e6] [cursor=pointer]:
+          - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/my/
+        - navigation [ref=e8]:
+          - menubar [ref=e9]:
+            - menuitem "Home" [ref=e10] [cursor=pointer]
+            - menuitem "Dashboard" [ref=e11] [cursor=pointer]
+            - menuitem "My courses" [ref=e12] [cursor=pointer]
+            - menuitem "Site administration" [ref=e13] [cursor=pointer]
+            - text: 
+        - generic [ref=e14]:
+          - button "Show notification window with 3 new notifications" [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: "3"
+          - button "Toggle messaging drawer" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+          - button "User menu" [ref=e26] [cursor=pointer]:
+            - img "Admin User" [ref=e30]: AU
+            - text: 
+          - generic [ref=e33]:
+            - generic [ref=e34]: Edit mode
+            - checkbox "Edit mode" [checked] [ref=e36]
+    - generic [ref=e37]:
+      - generic [ref=e38]:     
+      - navigation [ref=e40]:
+        - list [ref=e43]:
+          - listitem [ref=e44]
+          - listitem [ref=e48]
+          - listitem [ref=e52]
+          - listitem [ref=e56]
+    - generic [ref=e60]:
+      - generic [ref=e61]:
+        - generic:
+          - text: 
+          - button "Open block drawer" [ref=e63] [cursor=pointer]:
+            - generic [ref=e64]: Open block drawer
+            - generic [ref=e66]: 
+            - text: 
+        - banner [ref=e67]:
+          - generic [ref=e68]:
+            - navigation "Breadcrumb" [ref=e71]:
+              - list [ref=e72]:
+                - listitem [ref=e73]:
+                  - link "fp-smoke-cpKV" [ref=e74] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/view.php?id=4
+                - listitem [ref=e75]:
+                  - text: /
+                  - link "General" [ref=e76] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=11
+                - listitem [ref=e77]: / Real Video Upload sample-30s
+            - generic [ref=e81]:
+              - img [ref=e84]
+              - generic [ref=e85]:
+                - generic [ref=e86]: FastPix Video
+                - heading "Real Video Upload sample-30s" [level=1] [ref=e87]
+        - navigation [ref=e89]:
+          - menubar [ref=e90]:
+            - menuitem "FastPix Video" [ref=e91] [cursor=pointer]
+            - menuitem "Settings" [ref=e92] [cursor=pointer]
+            - menuitem "Filters" [ref=e93] [cursor=pointer]
+            - menuitem "Permissions" [ref=e94] [cursor=pointer]
+            - menuitem "Logs" [ref=e95] [cursor=pointer]
+            - menuitem "Backup" [ref=e96] [cursor=pointer]
+            - menuitem "Restore" [ref=e97] [cursor=pointer]
+            - menuitem "Watch report" [ref=e98] [cursor=pointer]
+            - text: 
+        - generic [ref=e101]:
+          - generic [ref=e103]: Completion requirements
+          - main [ref=e104]:
+            - heading "Real Video Upload sample-30s — Watch report" [level=2] [ref=e105]
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - generic [ref=e108]:
+                  - generic [ref=e109]: "1"
+                  - generic [ref=e110]: Unique viewers
+                - generic [ref=e111]:
+                  - generic [ref=e112]: 0%
+                  - generic [ref=e113]: Average watched
+                - generic [ref=e114]:
+                  - generic [ref=e115]: 0%
+                  - generic [ref=e116]: Completion rate
+              - generic [ref=e118]:
+                - heading "Engagement — viewers who watched each point of the video" [level=3] [ref=e119]
+                - generic [ref=e120]:
+                  - generic [ref=e121]: "% of viewers"
+                  - img "Engagement — viewers who watched each point of the video" [ref=e122]:
+                    - generic [ref=e123]: "0"
+                    - generic [ref=e124]: "25"
+                    - generic [ref=e125]: "50"
+                    - generic [ref=e126]: "75"
+                    - generic [ref=e127]: "100"
+                    - generic [ref=e128]: 0:00
+                    - generic [ref=e129]: 0:07
+                    - generic [ref=e130]: 0:14
+                    - generic [ref=e131]: 0:21
+                    - generic [ref=e132]: 0:29
+              - link "Download (CSV)" [ref=e134] [cursor=pointer]:
+                - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/report.php?id=75&mode=video&download=csv
+              - table [ref=e136]:
+                - rowgroup [ref=e137]:
+                  - row "Student Watch % Watch time Milestones Completed Last position Seeks Flags" [ref=e138]:
+                    - columnheader "Student" [ref=e139]
+                    - columnheader "Watch %" [ref=e140]
+                    - columnheader "Watch time" [ref=e141]
+                    - columnheader "Milestones" [ref=e142]
+                    - columnheader "Completed" [ref=e143]
+                    - columnheader "Last position" [ref=e144]
+                    - columnheader "Seeks" [ref=e145]
+                    - columnheader "Flags" [ref=e146]
+                - rowgroup [ref=e147]:
+                  - row "Admin User 0% 0:00 — — 0:00 0 0" [ref=e148]:
+                    - cell "Admin User" [ref=e149]:
+                      - link "Admin User" [ref=e150] [cursor=pointer]:
+                        - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/report.php?id=75&mode=user&userid=2
+                    - cell "0%" [ref=e151]
+                    - cell "0:00" [ref=e152]
+                    - cell "—" [ref=e153]
+                    - cell "—" [ref=e154]
+                    - cell "0:00" [ref=e155]
+                    - cell "0" [ref=e156]
+                    - cell "0" [ref=e157]
+      - contentinfo:
+        - button "Show footer" [ref=e158] [cursor=pointer]:
+          - generic [ref=e159]: "?"
+        - text:    

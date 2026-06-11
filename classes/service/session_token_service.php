@@ -66,16 +66,9 @@ class session_token_service {
      * Also checks the 4h TTL.
      */
     public function verify(string $provided, string $expected, int $sessionstartts): bool {
-        if ($sessionstartts <= 0) {
-            return false;
-        }
-        if ((time() - $sessionstartts) > self::TTL_SECONDS) {
-            return false;
-        }
-        if (strlen($provided) !== strlen($expected)) {
-            return false;
-        }
-        return hash_equals($expected, $provided);
+        return $this->is_within_ttl($sessionstartts)
+            && strlen($provided) === strlen($expected)
+            && hash_equals($expected, $provided);
     }
 
     /**

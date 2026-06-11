@@ -50,7 +50,7 @@ class watch_milestone extends \core\event\base {
         $cm = get_coursemodule_from_instance('fastpix', (int)$activity->id, (int)$activity->course, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
 
-        $event = self::create([
+        return self::create([
             'objectid' => $attemptid,
             'context'  => $context,
             'userid'   => (int)$attempt->userid,
@@ -58,7 +58,6 @@ class watch_milestone extends \core\event\base {
                 'milestone' => $milestone,
             ],
         ]);
-        return $event;
     }
 
     /**

@@ -80,7 +80,7 @@ tracker, completion and gradebook integration, and backup/restore.
 
 - Moodle 4.5 LTS or later.
 - PHP 8.1 or later (tested through PHP 8.3).
-- `local_fastpix` v1.0.0 or later, installed and connected to a FastPix
+- `local_fastpix` v1.1.0 or later, installed and connected to a FastPix
   account, with a green **Authenticated** result on its **Test
   connection** button. [Set up the foundation plugin](https://fastpix.com/docs/moodle/local-plugin)
   first if you haven't.

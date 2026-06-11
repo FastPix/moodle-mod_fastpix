@@ -42,7 +42,7 @@ const revealFallback = () => {
 
 const stop = () => {
     if (timer !== null) {
-        window.clearTimeout(timer);
+        globalThis.clearTimeout(timer);
         timer = null;
     }
 };
@@ -72,7 +72,7 @@ const swapToPlayer = (response) => {
         // player_wrapper emits multiple top-level siblings (the player mount div
         // + the progress card host). Move ALL parsed element nodes in.
         if (!tmp.content.firstElementChild) {
-            window.console.error('[mod_fastpix] swap: empty render');
+            globalThis.console.error('[mod_fastpix] swap: empty render');
             return null;
         }
         node.replaceChildren(tmp.content);
@@ -82,13 +82,13 @@ const swapToPlayer = (response) => {
         }
         const wrapperEl = node.querySelector('[data-region="fastpix-player-wrapper"]');
         if (!wrapperEl) {
-            window.console.error('[mod_fastpix] swap: player wrapper not found; leaving placeholder');
+            globalThis.console.error('[mod_fastpix] swap: player wrapper not found; leaving placeholder');
             return null;
         }
         return Player.mount(wrapperEl, response);
     }).catch((err) => {
-        if (window.console) {
-            window.console.error('[mod_fastpix] player swap failed', err && err.message);
+        if (globalThis.console) {
+            globalThis.console.error('[mod_fastpix] player swap failed', err?.message);
         }
     });
 };
@@ -108,8 +108,8 @@ const swapToError = (errorKey) => {
         Templates.replaceNodeContents(node, html, js);
         return null;
     }).catch((err) => {
-        if (window.console) {
-            window.console.error('[mod_fastpix] error swap failed', err && err.message);
+        if (globalThis.console) {
+            globalThis.console.error('[mod_fastpix] error swap failed', err?.message);
         }
     });
 };
@@ -119,7 +119,7 @@ const scheduleTick = (cmid) => {
         revealFallback();
         return;
     }
-    timer = window.setTimeout(() => tick(cmid), POLL_INTERVAL_MS);
+    timer = globalThis.setTimeout(() => tick(cmid), POLL_INTERVAL_MS);
 };
 
 // Poll our own readiness oracle directly. get_player_state resolves the asset
@@ -141,7 +141,7 @@ const tick = (cmid) => {
             swapToPlayer(response);
             return null;
         }
-        if (response && response.error_key) {
+        if (response?.error_key) {
             stop();
             swapToError(response.error_key);
             return null;
@@ -164,5 +164,5 @@ export const init = (cmid) => {
     initWired = true;
     stop();
     pollsRemaining = MAX_POLLS;
-    timer = window.setTimeout(() => tick(cmid), FIRST_POLL_DELAY_MS);
+    timer = globalThis.setTimeout(() => tick(cmid), FIRST_POLL_DELAY_MS);
 };

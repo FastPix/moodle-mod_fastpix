@@ -657,9 +657,25 @@ class mod_fastpix_mod_form extends moodleform_mod {
      * @return array<string,string> Errors keyed by visible mform element name.
      */
     public function validate_fastpix_rules(array $data): array {
-        global $DB;
-        $errors = [];
+        // Each concern is validated independently; later checks that key on
+        // 'name' intentionally overwrite earlier ones (same precedence the
+        // original single-method form had). Order is significant.
+        return array_merge(
+            $this->validate_source($data),
+            $this->validate_completion_threshold($data),
+            $this->validate_access_policy($data),
+            $this->validate_captions($data),
+            $this->validate_asset_swap($data)
+        );
+    }
 
+    /**
+     * Validate the chosen video source (direct upload vs URL pull).
+     *
+     * @param array $data Form submission data.
+     * @return array<string,string> Errors keyed by visible mform element name.
+     */
+    private function validate_source(array $data): array {
         // The source_url is rendered as a raw HTML <input>, NOT a registered mform
         // element, so $data never includes it. Read directly from $_POST.
         // PARAM_URL pairs with the local_fastpix SSRF guard on the validate
@@ -670,76 +686,123 @@ class mod_fastpix_mod_form extends moodleform_mod {
         // All errors below attach to 'name' (a visible text element at the
         // top of the form). 'source_url' and 'upload_session_id' have no
         // visible mform row, so errors keyed there are silently dropped.
+        $error = '';
         if ($sourcetype === 'upload' && empty($data['upload_session_id'])) {
-            $errors['name'] = get_string('error_uploadrequired', 'mod_fastpix');
-        }
-        if ($sourcetype === 'urlpull') {
-            if (empty($sourceurl)) {
-                $errors['name'] = get_string('error_urlrequired', 'mod_fastpix');
-            } else if (empty($data['upload_session_id'])) {
-                $errors['name'] = get_string('error_urlnotvalidated', 'mod_fastpix');
-            }
+            $error = get_string('error_uploadrequired', 'mod_fastpix');
+        } else if ($sourcetype === 'urlpull' && empty($sourceurl)) {
+            $error = get_string('error_urlrequired', 'mod_fastpix');
+        } else if ($sourcetype === 'urlpull' && empty($data['upload_session_id'])) {
+            $error = get_string('error_urlnotvalidated', 'mod_fastpix');
         }
 
-        if (!empty($data['completionwatchedpercentenabled'])) {
-            $threshold = (int)$data['completionwatchedpercent'];
-            if ($threshold <= 0 || $threshold > 100) {
-                $errors['completionwatchedpercentgroup'] = get_string('error_thresholdrange', 'mod_fastpix');
-            }
-        }
+        return $error === '' ? [] : ['name' => $error];
+    }
 
-        // Access policy: DRM is only selectable when the site has DRM configured.
-        // The control is custom HTML, so the value arrives via POST — read it
-        // with optional_param (tests pass it on $data directly). The error
-        // attaches to 'name' (a visible element) since the segmented control has
-        // no mform row of its own, mirroring the upload/url errors above.
+    /**
+     * Validate the completion watched-percent threshold (when enabled).
+     *
+     * @param array $data Form submission data.
+     * @return array<string,string> Errors keyed by visible mform element name.
+     */
+    private function validate_completion_threshold(array $data): array {
+        if (empty($data['completionwatchedpercentenabled'])) {
+            return [];
+        }
+        $threshold = (int)$data['completionwatchedpercent'];
+        if ($threshold <= 0 || $threshold > 100) {
+            return ['completionwatchedpercentgroup' => get_string('error_thresholdrange', 'mod_fastpix')];
+        }
+        return [];
+    }
+
+    /**
+     * Validate the access policy — DRM is only selectable when the site has DRM
+     * configured. The control is custom HTML, so the value arrives via POST
+     * (tests pass it on $data directly). The error attaches to 'name' since the
+     * segmented control has no mform row of its own.
+     *
+     * @param array $data Form submission data.
+     * @return array<string,string> Errors keyed by visible mform element name.
+     */
+    private function validate_access_policy(array $data): array {
         $policy = $data['access_policy'] ?? optional_param('access_policy', 'private', PARAM_ALPHA);
         if ($policy === 'drm' && !\local_fastpix\service\feature_flag_service::instance()->drm_enabled()) {
-            $errors['name'] = get_string('error_drmnotconfigured', 'mod_fastpix');
+            return ['name' => get_string('error_drmnotconfigured', 'mod_fastpix')];
         }
+        return [];
+    }
 
-        // Captions: auto requires a language; vtt requires an uploaded .vtt file.
-        // Custom-HTML controls arrive via POST (tests pass them on $data).
+    /**
+     * Validate captions: auto requires a language; vtt requires an uploaded .vtt.
+     * Custom-HTML controls arrive via POST (tests pass them on $data).
+     *
+     * @param array $data Form submission data.
+     * @return array<string,string> Errors keyed by visible mform element name.
+     */
+    private function validate_captions(array $data): array {
         $capenabled = isset($data['captionsenabled'])
             ? !empty($data['captionsenabled'])
             : (bool)optional_param('captionsenabled', 0, PARAM_BOOL);
-        if ($capenabled) {
-            $mode = $data['captionsmode'] ?? optional_param('captionsmode', 'auto', PARAM_ALPHA);
-            if ($mode === 'auto') {
-                $lang = $data['languagecode'] ?? optional_param('languagecode', '', PARAM_ALPHA);
-                $valid = array_merge(self::CAPTION_LANGS_SUPPORTED, self::CAPTION_LANGS_BETA);
-                if ($lang === '' || !in_array($lang, $valid, true)) {
-                    $errors['name'] = get_string('error_languagerequired', 'mod_fastpix');
-                }
-            } else if ($mode === 'vtt') {
-                $draftid = (int)($data['captionsfile'] ?? optional_param('captionsfile', 0, PARAM_INT));
-                $hasfile = false;
-                if ($draftid > 0) {
-                    require_once($GLOBALS['CFG']->libdir . '/filelib.php');
-                    $info = file_get_draft_area_info($draftid);
-                    $hasfile = !empty($info['filecount']);
-                }
-                if (!$hasfile) {
-                    $errors['name'] = get_string('error_vttrequired', 'mod_fastpix');
-                }
-            }
+        if (!$capenabled) {
+            return [];
         }
 
-        if (!empty($this->_instance)) {
-            $existing = $DB->get_record('fastpix', ['id' => $this->_instance]);
-            if ($existing) {
-                // Service owns the "has any real attempts?" check (A6).
-                // Real = watched_intervals non-empty (excludes teacher previews).
-                $hasrealattempts = \mod_fastpix\service\playback_service::instance()
-                    ->has_attempts_for((int)$this->_instance);
-                $newsession = !empty($data['upload_session_id']) ? (int)$data['upload_session_id'] : null;
-                $oldsession = !empty($existing->upload_session_id) ? (int)$existing->upload_session_id : null;
-                if ($hasrealattempts && $newsession !== null && $newsession !== $oldsession) {
-                    $errors['name'] = get_string('error_assetswapblocked', 'mod_fastpix');
-                }
+        $mode = $data['captionsmode'] ?? optional_param('captionsmode', 'auto', PARAM_ALPHA);
+        $error = '';
+        if ($mode === 'auto') {
+            $lang = $data['languagecode'] ?? optional_param('languagecode', '', PARAM_ALPHA);
+            $valid = array_merge(self::CAPTION_LANGS_SUPPORTED, self::CAPTION_LANGS_BETA);
+            if ($lang === '' || !in_array($lang, $valid, true)) {
+                $error = get_string('error_languagerequired', 'mod_fastpix');
             }
+        } else if ($mode === 'vtt' && !$this->captions_draft_has_file($data)) {
+            $error = get_string('error_vttrequired', 'mod_fastpix');
         }
 
-        return $errors;
+        return $error === '' ? [] : ['name' => $error];
+    }
+
+    /**
+     * Whether the captions draft area holds an uploaded file.
+     *
+     * @param array $data Form submission data (uses 'captionsfile' draft itemid).
+     * @return bool True when at least one file is present in the draft area.
+     */
+    private function captions_draft_has_file(array $data): bool {
+        $draftid = (int)($data['captionsfile'] ?? optional_param('captionsfile', 0, PARAM_INT));
+        if ($draftid <= 0) {
+            return false;
+        }
+        require_once($GLOBALS['CFG']->libdir . '/filelib.php');
+        $info = file_get_draft_area_info($draftid);
+        return !empty($info['filecount']);
+    }
+
+    /**
+     * Block swapping the asset on an activity that already has real attempts
+     * (watched_intervals non-empty — excludes teacher previews). The service
+     * owns the "has any real attempts?" check (A6).
+     *
+     * @param array $data Form submission data.
+     * @return array<string,string> Errors keyed by visible mform element name.
+     */
+    private function validate_asset_swap(array $data): array {
+        global $DB;
+        // Skip the DB read entirely on create (no instance yet); a missing row
+        // also short-circuits to "no error".
+        $existing = empty($this->_instance)
+            ? false
+            : $DB->get_record('fastpix', ['id' => $this->_instance]);
+        if (!$existing) {
+            return [];
+        }
+        $hasrealattempts = \mod_fastpix\service\playback_service::instance()
+            ->has_attempts_for((int)$this->_instance);
+        $newsession = !empty($data['upload_session_id']) ? (int)$data['upload_session_id'] : null;
+        $oldsession = !empty($existing->upload_session_id) ? (int)$existing->upload_session_id : null;
+        if ($hasrealattempts && $newsession !== null && $newsession !== $oldsession) {
+            return ['name' => get_string('error_assetswapblocked', 'mod_fastpix')];
+        }
+        return [];
     }
 }

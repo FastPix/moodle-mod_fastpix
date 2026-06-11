@@ -236,29 +236,8 @@ class watch_report {
         $viewers = 0;
 
         foreach ($attempts as $attempt) {
-            $intervals = json_decode($attempt->watched_intervals ?? '[]', true) ?: [];
-            if (!is_array($intervals)) {
-                continue;
-            }
-            $viewers++;
-            $seen = array_fill(0, $buckets, false);
-            foreach ($intervals as $iv) {
-                if (!is_array($iv) || !isset($iv[0], $iv[1])) {
-                    continue;
-                }
-                $start = max(0.0, (float)$iv[0]);
-                $end = min((float)$duration, (float)$iv[1]);
-                if ($end <= $start) {
-                    continue;
-                }
-                $b0 = (int)floor($start / $bucketseconds);
-                $b1 = (int)floor(($end - 0.0001) / $bucketseconds);
-                for ($b = $b0; $b <= $b1 && $b < $buckets; $b++) {
-                    if ($b >= 0 && !$seen[$b]) {
-                        $seen[$b] = true;
-                        $counts[$b]++;
-                    }
-                }
+            if ($this->bucket_attempt($attempt->watched_intervals ?? '[]', $counts, $buckets, $bucketseconds, $duration)) {
+                $viewers++;
             }
         }
 
@@ -276,6 +255,50 @@ class watch_report {
             'bucketseconds' => $bucketseconds,
             'dropoff'       => $this->biggest_dropoff($values, $bucketseconds),
         ];
+    }
+
+    /**
+     * Bucket one viewer's watched intervals into the shared per-bucket counts.
+     * Each bucket is counted at most once per viewer (de-duped via $seen).
+     *
+     * @param string $intervalsjson The attempt's watched_intervals JSON.
+     * @param int[] $counts Per-bucket viewer counts, mutated in place.
+     * @param int $buckets Number of buckets.
+     * @param float $bucketseconds Seconds per bucket.
+     * @param int $duration Asset duration in seconds.
+     * @return bool True if the row was a countable viewer.
+     */
+    private function bucket_attempt(
+        string $intervalsjson,
+        array &$counts,
+        int $buckets,
+        float $bucketseconds,
+        int $duration
+    ): bool {
+        $intervals = json_decode($intervalsjson, true) ?: [];
+        if (!is_array($intervals)) {
+            return false;
+        }
+        $seen = array_fill(0, $buckets, false);
+        foreach ($intervals as $iv) {
+            if (!is_array($iv) || !isset($iv[0], $iv[1])) {
+                continue;
+            }
+            $start = max(0.0, (float)$iv[0]);
+            $end = min((float)$duration, (float)$iv[1]);
+            if ($end <= $start) {
+                continue;
+            }
+            $b0 = (int)floor($start / $bucketseconds);
+            $b1 = (int)floor(($end - 0.0001) / $bucketseconds);
+            for ($b = $b0; $b <= $b1 && $b < $buckets; $b++) {
+                if ($b >= 0 && !$seen[$b]) {
+                    $seen[$b] = true;
+                    $counts[$b]++;
+                }
+            }
+        }
+        return true;
     }
 
     /**

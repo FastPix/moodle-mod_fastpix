@@ -1,0 +1,136 @@
+- generic [ref=e1]:
+  - status
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#maincontent"
+    - navigation "Site navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "dev" [ref=e6] [cursor=pointer]:
+          - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/my/
+        - navigation [ref=e8]:
+          - menubar [ref=e9]:
+            - menuitem "Home" [ref=e10] [cursor=pointer]
+            - menuitem "Dashboard" [ref=e11] [cursor=pointer]
+            - menuitem "My courses" [ref=e12] [cursor=pointer]
+            - menuitem "Site administration" [ref=e13] [cursor=pointer]
+            - text: 
+        - generic [ref=e14]:
+          - button "Show notification window with 3 new notifications" [active] [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: "3"
+          - button "Toggle messaging drawer" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+          - button "User menu" [ref=e26] [cursor=pointer]:
+            - img "Admin User" [ref=e30]: AU
+            - text: 
+          - generic [ref=e33]:
+            - generic [ref=e34]: Edit mode
+            - checkbox "Edit mode" [checked] [ref=e36]
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - button "Close course index" [ref=e110] [cursor=pointer]:
+          - generic [ref=e111]: 
+        - generic [ref=e113]:
+          - button "Course index options" [ref=e114] [cursor=pointer]:
+            - generic [ref=e115]: 
+          - text:   
+      - navigation [ref=e40]:
+        - tree [ref=e116]:
+          - treeitem "Collapse General" [selected] [ref=e117]:
+            - generic [ref=e118]:
+              - link "Collapse" [expanded] [ref=e119] [cursor=pointer]:
+                - /url: "#courseindexcollapse0"
+                - text:  
+                - generic "Collapse" [ref=e120]:
+                  - generic [ref=e121]: 
+                  - generic [ref=e122]: Collapse
+              - link "General" [ref=e123] [cursor=pointer]:
+                - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=11
+              - text: 
+            - group "Collapse General" [ref=e124]:
+              - group [ref=e125]:
+                - treeitem "Announcements" [ref=e126]:
+                  - link "Announcements" [ref=e128] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/forum/view.php?id=3
+                  - text: 
+                - treeitem "UI Test URL Pull BigBuckBunny" [ref=e129]:
+                  - link "UI Test URL Pull BigBuckBunny" [ref=e131] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/view.php?id=74
+                  - text: 
+                - treeitem "Real Video Upload sample-30s" [ref=e132]:
+                  - link "Real Video Upload sample-30s" [ref=e134] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/fastpix/view.php?id=75
+                  - text: 
+                - 'treeitem "Embed demo: Page resource" [ref=e135]':
+                  - 'link "Embed demo: Page resource" [ref=e137] [cursor=pointer]':
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/page/view.php?id=76
+                  - text: 
+                - 'treeitem "Embed demo: Label — a FastPix video shown inline o..." [ref=e138]':
+                  - 'link "Embed demo: Label — a FastPix video shown inline o..." [ref=e140] [cursor=pointer]':
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=11#module-77
+                  - text: 
+                - 'treeitem "Embed demo: Assignment description" [ref=e141]':
+                  - 'link "Embed demo: Assignment description" [ref=e143] [cursor=pointer]':
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/assign/view.php?id=78
+                  - text: 
+                - 'treeitem "Embed demo: Quiz with video question" [ref=e144]':
+                  - 'link "Embed demo: Quiz with video question" [ref=e146] [cursor=pointer]':
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/mod/quiz/view.php?id=79
+                  - text: 
+          - treeitem "Collapse New section" [ref=e147]:
+            - generic [ref=e148]:
+              - link "Collapse" [expanded] [ref=e149] [cursor=pointer]:
+                - /url: "#courseindexcollapse1"
+                - text:  
+                - generic "Collapse" [ref=e150]:
+                  - generic [ref=e151]: 
+                  - generic [ref=e152]: Collapse
+              - link "New section" [ref=e153] [cursor=pointer]:
+                - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=12
+              - text: 
+            - group "Collapse New section":
+              - group
+    - generic [ref=e60]:
+      - generic [ref=e61]:
+        - generic:
+          - text: 
+          - button "Open block drawer" [ref=e63] [cursor=pointer]:
+            - generic [ref=e64]: Open block drawer
+            - generic [ref=e66]: 
+            - text: 
+        - banner [ref=e67]:
+          - generic [ref=e68]:
+            - navigation "Breadcrumb" [ref=e71]:
+              - list [ref=e72]:
+                - listitem [ref=e73]:
+                  - link "fp-smoke-cpKV" [ref=e74] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/view.php?id=4
+                - listitem [ref=e75]:
+                  - text: /
+                  - link "General" [ref=e76] [cursor=pointer]:
+                    - /url: https://napoleon-isopodous-ramiro.ngrok-free.dev/course/section.php?id=11
+                - listitem [ref=e77]: / Real Video Upload sample-30s
+            - generic [ref=e81]:
+              - img [ref=e84]
+              - generic [ref=e85]:
+                - generic [ref=e86]: FastPix Video
+                - heading "Real Video Upload sample-30s" [level=1] [ref=e87]
+        - navigation [ref=e89]:
+          - menubar [ref=e90]:
+            - menuitem "FastPix Video" [ref=e91] [cursor=pointer]
+            - menuitem "Settings" [ref=e92] [cursor=pointer]
+            - menuitem "Watch report" [ref=e93] [cursor=pointer]
+            - menuitem "More " [ref=e94] [cursor=pointer]
+        - generic [ref=e97]:
+          - generic [ref=e99]: Completion requirements
+          - main [ref=e100]:
+            - generic [ref=e103]:
+              - button [ref=e105] [cursor=pointer]:
+                - img [ref=e155]
+              - generic [ref=e157]:
+                - generic [ref=e158]: A DRM (Digital Rights Management) error occurred.
+                - generic [ref=e159]: Please check your drm-token or token for the stream.
+      - contentinfo:
+        - button "Show footer" [ref=e108] [cursor=pointer]:
+          - generic [ref=e109]: "?"
+        - text:    

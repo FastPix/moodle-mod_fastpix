@@ -77,16 +77,16 @@ const getSessionField = (fieldname) => document.querySelector(`input[name="${fie
  */
 const gatherUploadArgs = (file) => {
     const nameEl = document.querySelector('input[name="name"]');
-    let title = nameEl && nameEl.value ? nameEl.value.trim() : '';
+    let title = nameEl?.value ? nameEl.value.trim() : '';
     if (!title) {
-        title = file && file.name ? file.name.replace(/\.[^.]+$/, '') : 'Untitled video';
+        title = file?.name ? file.name.replace(/\.[^.]+$/, '') : 'Untitled video';
     }
     const apEl = document.querySelector('input[name="access_policy"]:checked');
     const accesspolicy = apEl ? apEl.value : 'private';
     let captionsmode = 'none';
     if (document.querySelector('input[name="captionsenabled"]:checked')) {
         const modeEl = document.querySelector('input[name="captionsmode"]:checked');
-        captionsmode = (modeEl && modeEl.value === 'vtt') ? 'vtt' : 'auto';
+        captionsmode = (modeEl?.value === 'vtt') ? 'vtt' : 'auto';
     }
     const langEl = document.querySelector('select[name="languagecode"]');
     const languagecode = (captionsmode === 'auto' && langEl) ? langEl.value : '';
@@ -130,10 +130,8 @@ const setUrlStatus = (message, kind) => {
         el.className = 'fastpix-vs-url-status';
         return;
     }
-    const state = kind === 'success' ? 'success'
-        : kind === 'danger' ? 'danger'
-        : kind === 'warning' ? 'warning'
-        : 'muted';
+    const states = {success: 'success', danger: 'danger', warning: 'warning'};
+    const state = states[kind] || 'muted';
     el.textContent = message;
     el.className = 'fastpix-vs-url-status fastpix-vs-url-status--' + state;
 };
@@ -199,7 +197,7 @@ const putToSignedUrl = async (file, uploadUrl, onProgress) => {
             // FastPix resumable SDK reports the percentage at
             // event.detail.progress (0..100) — NOT event.detail. Reading
             // event.detail rounded an object to NaN, leaving the bar at 0%.
-            const raw = (event && event.detail && typeof event.detail.progress === 'number')
+            const raw = (typeof event?.detail?.progress === 'number')
                 ? event.detail.progress
                 : 0;
             const pct = Math.max(0, Math.min(100, Math.round(raw)));
@@ -213,7 +211,7 @@ const putToSignedUrl = async (file, uploadUrl, onProgress) => {
 
         upload.on('error', (event) => {
             const detail = event.detail || {};
-            const msg = detail.message || (detail.toString && detail.toString()) || 'upload_failed';
+            const msg = detail.message || detail.toString?.() || 'upload_failed';
             reject(new Error(msg));
         });
     });
@@ -331,14 +329,14 @@ const wireDropzone = (region, sessionField) => {
         e.preventDefault();
         e.stopPropagation();
         setDragging(false);
-        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        const file = e.dataTransfer?.files?.[0];
         if (file) {
             handleFileSelected(region, sessionField, file);
         }
     });
 
     input.addEventListener('change', () => {
-        const file = input.files && input.files[0];
+        const file = input.files?.[0];
         if (file) {
             handleFileSelected(region, sessionField, file);
         }
@@ -347,7 +345,7 @@ const wireDropzone = (region, sessionField) => {
 
 const validateUrl = async (sessionField, button) => {
     const urlInput = document.querySelector(SELECTORS.sourceUrl);
-    if (!urlInput || !urlInput.value) {
+    if (!urlInput?.value) {
         setUrlStatus('Enter a URL first.', 'warning');
         return;
     }
@@ -391,8 +389,8 @@ export const init = async (config) => {
     // template renders, so the listener is in place even if the user
     // somehow clicks before render completes.
     const validateBtn = document.querySelector(SELECTORS.validateBtn);
-    if (validateBtn && validateBtn.getAttribute('data-fastpix-wired') !== '1') {
-        validateBtn.setAttribute('data-fastpix-wired', '1');
+    if (validateBtn && validateBtn.dataset.fastpixWired !== '1') {
+        validateBtn.dataset.fastpixWired = '1';
         validateBtn.addEventListener('click', (e) => {
             e.preventDefault();
             validateUrl(sessionField, validateBtn);
@@ -402,8 +400,8 @@ export const init = async (config) => {
     // Editing the URL invalidates a prior validate (so the form doesn't
     // submit a stale upload_session_id against a new URL).
     const urlInput = document.querySelector(SELECTORS.sourceUrl);
-    if (urlInput && urlInput.getAttribute('data-fastpix-wired') !== '1') {
-        urlInput.setAttribute('data-fastpix-wired', '1');
+    if (urlInput && urlInput.dataset.fastpixWired !== '1') {
+        urlInput.dataset.fastpixWired = '1';
         urlInput.addEventListener('input', () => {
             if (sessionField) { sessionField.value = ''; }
             setUrlStatus('', 'muted');
@@ -416,15 +414,15 @@ export const init = async (config) => {
     // replace them) and wire dropzone.
     const renderedUrlInput = document.querySelector(SELECTORS.sourceUrl);
     const renderedValidateBtn = document.querySelector(SELECTORS.validateBtn);
-    if (renderedValidateBtn && renderedValidateBtn.getAttribute('data-fastpix-wired') !== '1') {
-        renderedValidateBtn.setAttribute('data-fastpix-wired', '1');
+    if (renderedValidateBtn && renderedValidateBtn.dataset.fastpixWired !== '1') {
+        renderedValidateBtn.dataset.fastpixWired = '1';
         renderedValidateBtn.addEventListener('click', (e) => {
             e.preventDefault();
             validateUrl(sessionField, renderedValidateBtn);
         });
     }
-    if (renderedUrlInput && renderedUrlInput.getAttribute('data-fastpix-wired') !== '1') {
-        renderedUrlInput.setAttribute('data-fastpix-wired', '1');
+    if (renderedUrlInput && renderedUrlInput.dataset.fastpixWired !== '1') {
+        renderedUrlInput.dataset.fastpixWired = '1';
         renderedUrlInput.addEventListener('input', () => {
             if (sessionField) { sessionField.value = ''; }
             setUrlStatus('', 'muted');

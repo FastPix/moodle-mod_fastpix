@@ -37,6 +37,182 @@
 const esmImport = (url) => Function('u', 'return import(u);')(url);
 
 /**
+ * Hide every skip/seek control matching the given selectors inside one
+ * (shadow) root.
+ *
+ * @param {(ShadowRoot|Element)} root the root to search within
+ * @param {String[]} selectors the control selectors to hide
+ * @return {Number} how many controls were hidden
+ */
+const hideMatchingControls = (root, selectors) => {
+    let hit = 0;
+    selectors.forEach((sel) => {
+        try {
+            root.querySelectorAll(sel).forEach((b) => {
+                b.style.display = 'none';
+                hit++;
+            });
+        } catch (e) {
+            // Ignore selector errors.
+        }
+    });
+    return hit;
+};
+
+/**
+ * Disable the time-range scrubber inside one (shadow) root so dragging the
+ * playhead does nothing.
+ *
+ * @param {(ShadowRoot|Element)} root the root to search within
+ */
+const disableTimeRange = (root) => {
+    try {
+        root.querySelectorAll('media-time-range, [part*="time-range"]').forEach((tr) => {
+            tr.setAttribute('disabled', '');
+            tr.style.pointerEvents = 'none';
+        });
+    } catch (e) {
+        // Ignore.
+    }
+};
+
+/**
+ * Pierce the player's shadow DOM (its own root + any nested one level down) and
+ * hide every skip/seek control + the time-range scrubber.
+ *
+ * @param {HTMLElement} el the <fastpix-player> element
+ * @return {Boolean} true if any control was hidden
+ */
+const hideSkipControls = (el) => {
+    const roots = [];
+    if (el.shadowRoot) {
+        roots.push(el.shadowRoot);
+    }
+    // Some embeds nest another shadow root one level down.
+    if (el.shadowRoot) {
+        el.shadowRoot.querySelectorAll('*').forEach((n) => {
+            if (n.shadowRoot) {
+                roots.push(n.shadowRoot);
+            }
+        });
+    }
+    const selectors = [
+        'media-seek-forward-button',
+        'media-seek-backward-button',
+        'button[aria-label*="forward" i]',
+        'button[aria-label*="backward" i]',
+        'button[aria-label*="seek" i]',
+        '[role="button"][aria-label*="forward" i]',
+        '[role="button"][aria-label*="backward" i]',
+        '[part*="seek-forward"]',
+        '[part*="seek-backward"]'
+    ];
+    let hit = 0;
+    roots.forEach((root) => {
+        hit += hideMatchingControls(root, selectors);
+        disableTimeRange(root);
+    });
+    return hit > 0;
+};
+
+/**
+ * No-skip UX-prevention layer for an activity with seeking disabled: kill
+ * hotkeys, hide skip/seek controls (shadow DOM; re-run on each meaningful event
+ * + a few timeouts since the shadow root may upgrade late), and block every
+ * seek-related key in the capture phase. Server-side fraud check #6
+ * (seek_on_noskip) is the real gate; this is the prevention layer.
+ *
+ * @param {HTMLElement} el the <fastpix-player> element
+ * @param {HTMLElement} wrapperEl the player wrapper
+ */
+const wireNoSkipControls = (el, wrapperEl) => {
+    // Mux Player / Media Chrome convention — kills built-in hotkeys.
+    el.setAttribute('nohotkeys', '');
+
+    // Set CSS custom props the player MIGHT honour (defence in depth).
+    el.style.setProperty('--backward-skip-button', 'none');
+    el.style.setProperty('--forward-skip-button', 'none');
+    el.style.setProperty('--seek-backward-button', 'none');
+    el.style.setProperty('--seek-forward-button', 'none');
+
+    const hide = () => hideSkipControls(el);
+    el.addEventListener('loadedmetadata', hide);
+    el.addEventListener('loadeddata', hide);
+    el.addEventListener('canplay', hide);
+    window.setTimeout(hide, 200);
+    window.setTimeout(hide, 800);
+    window.setTimeout(hide, 2000);
+    // Watch for the player to inject controls late.
+    if (typeof MutationObserver !== 'undefined' && el.shadowRoot) {
+        new MutationObserver(hide).observe(
+            el.shadowRoot,
+            {childList: true, subtree: true}
+        );
+    }
+
+    // Keyboard guard — blocks every seek-related key in capture phase.
+    const seekKeys = {
+        'ArrowLeft': 1, 'ArrowRight': 1,
+        'KeyJ': 1, 'KeyL': 1,
+        'Home': 1, 'End': 1,
+        'Comma': 1, 'Period': 1,
+        'Digit0': 1, 'Digit1': 1, 'Digit2': 1, 'Digit3': 1, 'Digit4': 1,
+        'Digit5': 1, 'Digit6': 1, 'Digit7': 1, 'Digit8': 1, 'Digit9': 1,
+        'Numpad0': 1, 'Numpad1': 1, 'Numpad2': 1, 'Numpad3': 1, 'Numpad4': 1,
+        'Numpad5': 1, 'Numpad6': 1, 'Numpad7': 1, 'Numpad8': 1, 'Numpad9': 1
+    };
+    const blockSeekKey = (e) => {
+        if (seekKeys[e.code]) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+    el.addEventListener('keydown', blockSeekKey, true);
+    wrapperEl.addEventListener('keydown', blockSeekKey, true);
+};
+
+/**
+ * Teacher show-captions-by-default wiring. The FastPix Web Player exposes no
+ * boolean attribute for this (CC9) — flip the first subtitles/captions
+ * text-track to showing once metadata is loaded, retrying briefly because HLS
+ * sidecar tracks load async (bounded; gives up after ~3s). Student keeps full
+ * control via the CC button.
+ *
+ * @param {HTMLElement} el the <fastpix-player> element
+ */
+const wireDefaultCaptions = (el) => {
+    const enableCaptions = () => {
+        const media = el.media
+            || (el.shadowRoot && (el.shadowRoot.querySelector('video') || el.shadowRoot.querySelector('audio')))
+            || el.querySelector('video')
+            || el;
+        const tracks = media?.textTracks;
+        if (!tracks || tracks.length === 0) {
+            return false;
+        }
+        for (const track of tracks) {
+            const k = track.kind;
+            if (k === 'captions' || k === 'subtitles') {
+                track.mode = 'showing';
+                return true;
+            }
+        }
+        return false;
+    };
+    el.addEventListener('loadedmetadata', () => {
+        if (enableCaptions()) {
+            return;
+        }
+        let attempts = 0;
+        const poll = window.setInterval(() => {
+            if (enableCaptions() || ++attempts > 15) {
+                window.clearInterval(poll);
+            }
+        }, 200);
+    });
+};
+
+/**
  * Mount the player + coverage tracker into wrapperEl using payload data.
  *
  * @param {HTMLElement} wrapperEl the [data-region="fastpix-player-wrapper"] node
@@ -92,7 +268,7 @@ export const mount = async(wrapperEl, payload) => {
     // player at first metadata) AND, as a fallback, seek directly once metadata
     // is ready — some player builds ignore start-time, which left the video
     // restarting from 0 even though the server returned the right position.
-    const startTime = parseFloat(payload.current_position);
+    const startTime = Number.parseFloat(payload.current_position);
     if (startTime && startTime > 0) {
         el.setAttribute('start-time', String(startTime));
         const resumeSeek = function() {
@@ -100,7 +276,7 @@ export const mount = async(wrapperEl, payload) => {
                 // Only seek if the player is still at the start (start-time
                 // didn't take) and the position is within the loaded duration.
                 if (Number(el.currentTime || 0) < startTime - 1
-                    && (!isFinite(el.duration) || el.duration > startTime)) {
+                    && (!Number.isFinite(el.duration) || el.duration > startTime)) {
                     el.currentTime = startTime;
                 }
             } catch (e) {
@@ -121,104 +297,7 @@ export const mount = async(wrapperEl, payload) => {
     // Server-side fraud check #6 (seek_on_noskip) catches anything that slips
     // through; this is the UX prevention layer.
     if (payload.no_skip_required) {
-        // Mux Player / Media Chrome convention — kills built-in hotkeys.
-        el.setAttribute('nohotkeys', '');
-
-        // Set CSS custom props the player MIGHT honour (defence in depth).
-        el.style.setProperty('--backward-skip-button', 'none');
-        el.style.setProperty('--forward-skip-button', 'none');
-        el.style.setProperty('--seek-backward-button', 'none');
-        el.style.setProperty('--seek-forward-button', 'none');
-
-        // Pierce shadow DOM. The player wraps Media Chrome web components;
-        // the skip buttons + time range are inside the shadow root and can't
-        // be hidden by external CSS, so query + hide directly.
-        const hideSkipControls = function() {
-            const roots = [];
-            if (el.shadowRoot) {
-                roots.push(el.shadowRoot);
-            }
-            // Some embeds nest another shadow root one level down.
-            if (el.shadowRoot) {
-                el.shadowRoot.querySelectorAll('*').forEach(function(n) {
-                    if (n.shadowRoot) {
-                        roots.push(n.shadowRoot);
-                    }
-                });
-            }
-            const selectors = [
-                'media-seek-forward-button',
-                'media-seek-backward-button',
-                'button[aria-label*="forward" i]',
-                'button[aria-label*="backward" i]',
-                'button[aria-label*="seek" i]',
-                '[role="button"][aria-label*="forward" i]',
-                '[role="button"][aria-label*="backward" i]',
-                '[part*="seek-forward"]',
-                '[part*="seek-backward"]'
-            ];
-            let hit = 0;
-            roots.forEach(function(root) {
-                selectors.forEach(function(sel) {
-                    try {
-                        root.querySelectorAll(sel).forEach(function(b) {
-                            b.style.display = 'none';
-                            hit++;
-                        });
-                    } catch (e) {
-                        // Ignore selector errors.
-                    }
-                });
-                // Disable scrubbing on the time-range slider so dragging the
-                // playhead does nothing.
-                try {
-                    root.querySelectorAll('media-time-range, [part*="time-range"]').forEach(function(tr) {
-                        tr.setAttribute('disabled', '');
-                        tr.style.pointerEvents = 'none';
-                    });
-                } catch (e) {
-                    // Ignore.
-                }
-            });
-            return hit > 0;
-        };
-
-        // Shadow DOM may not exist until after the player mounts and upgrades
-        // its custom elements. Run on every meaningful event + a few timeouts
-        // as a safety net.
-        el.addEventListener('loadedmetadata', hideSkipControls);
-        el.addEventListener('loadeddata', hideSkipControls);
-        el.addEventListener('canplay', hideSkipControls);
-        window.setTimeout(hideSkipControls, 200);
-        window.setTimeout(hideSkipControls, 800);
-        window.setTimeout(hideSkipControls, 2000);
-        // Watch for the player to inject controls late.
-        if (typeof MutationObserver !== 'undefined' && el.shadowRoot) {
-            new MutationObserver(hideSkipControls).observe(
-                el.shadowRoot,
-                {childList: true, subtree: true}
-            );
-        }
-
-        // Keyboard guard — blocks every seek-related key in capture phase.
-        const seekKeys = {
-            'ArrowLeft': 1, 'ArrowRight': 1,
-            'KeyJ': 1, 'KeyL': 1,
-            'Home': 1, 'End': 1,
-            'Comma': 1, 'Period': 1,
-            'Digit0': 1, 'Digit1': 1, 'Digit2': 1, 'Digit3': 1, 'Digit4': 1,
-            'Digit5': 1, 'Digit6': 1, 'Digit7': 1, 'Digit8': 1, 'Digit9': 1,
-            'Numpad0': 1, 'Numpad1': 1, 'Numpad2': 1, 'Numpad3': 1, 'Numpad4': 1,
-            'Numpad5': 1, 'Numpad6': 1, 'Numpad7': 1, 'Numpad8': 1, 'Numpad9': 1
-        };
-        const blockSeekKey = function(e) {
-            if (seekKeys[e.code]) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        };
-        el.addEventListener('keydown', blockSeekKey, true);
-        wrapperEl.addEventListener('keydown', blockSeekKey, true);
+        wireNoSkipControls(el, wrapperEl);
     }
 
     // Teacher show-captions-by-default wiring. The FastPix Web Player exposes
@@ -226,38 +305,7 @@ export const mount = async(wrapperEl, payload) => {
     // subtitles/captions text-track to showing once metadata is loaded. Student
     // keeps full control via the CC button.
     if (payload.default_show_captions) {
-        const enableCaptions = function() {
-            const media = el.media
-                || (el.shadowRoot && (el.shadowRoot.querySelector('video') || el.shadowRoot.querySelector('audio')))
-                || el.querySelector('video')
-                || el;
-            const tracks = media && media.textTracks;
-            if (!tracks || tracks.length === 0) {
-                return false;
-            }
-            for (let i = 0; i < tracks.length; i++) {
-                const k = tracks[i].kind;
-                if (k === 'captions' || k === 'subtitles') {
-                    tracks[i].mode = 'showing';
-                    return true;
-                }
-            }
-            return false;
-        };
-        el.addEventListener('loadedmetadata', function() {
-            // Track list isn't guaranteed populated on first loadedmetadata for
-            // HLS (sidecar tracks load async), so retry briefly. Bounded —
-            // gives up after ~3s.
-            if (enableCaptions()) {
-                return;
-            }
-            let attempts = 0;
-            const poll = window.setInterval(function() {
-                if (enableCaptions() || ++attempts > 15) {
-                    window.clearInterval(poll);
-                }
-            }, 200);
-        });
+        wireDefaultCaptions(el);
     }
 
     // Inline coverage tracker. Self-contained — does not depend on the
@@ -272,8 +320,8 @@ export const mount = async(wrapperEl, payload) => {
         // below-player progress card (and its data-region="fastpix-bars" host)
         // was removed in favour of the overlaid status pill.
         const bars = wrapperEl;
-        let duration = Number(bars.getAttribute('data-asset-duration')) || Number(payload.asset_duration_seconds) || 0;
-        const threshold = Number(bars.getAttribute('data-threshold')) || Number(payload.completion_watch_percent) || 0;
+        let duration = Number(bars.dataset.assetDuration) || Number(payload.asset_duration_seconds) || 0;
+        const threshold = Number(bars.dataset.threshold) || Number(payload.completion_watch_percent) || 0;
         // The "Completed" indicator is shown only when the activity actually has
         // the watched-% completion condition. Without it, watch coverage must
         // not claim "Completed" (and no grade is written). Defaults to enabled
@@ -311,10 +359,9 @@ export const mount = async(wrapperEl, payload) => {
                 return x[0] - y[0];
             });
             const out = [];
-            for (let i = 0; i < merged.length; i++) {
-                const cur = merged[i];
-                if (out.length && cur[0] - out[out.length - 1][1] <= 0.01) {
-                    out[out.length - 1][1] = Math.max(out[out.length - 1][1], cur[1]);
+            for (const cur of merged) {
+                if (out.length && cur[0] - out.at(-1)[1] <= 0.01) {
+                    out.at(-1)[1] = Math.max(out.at(-1)[1], cur[1]);
                 } else {
                     out.push([cur[0], cur[1]]);
                 }
@@ -323,8 +370,8 @@ export const mount = async(wrapperEl, payload) => {
         }
         function coverageSeconds() {
             let s = 0;
-            for (let i = 0; i < watched.length; i++) {
-                s += watched[i][1] - watched[i][0];
+            for (const w of watched) {
+                s += w[1] - w[0];
             }
             return s;
         }
@@ -367,9 +414,9 @@ export const mount = async(wrapperEl, payload) => {
             }
         }
         player.addEventListener('loadedmetadata', function() {
-            if (player.duration && isFinite(player.duration)) {
+            if (player.duration && Number.isFinite(player.duration)) {
                 duration = player.duration;
-                bars.setAttribute('data-asset-duration', duration);
+                bars.dataset.assetDuration = duration;
             }
             repaint();
         });
@@ -409,7 +456,7 @@ export const mount = async(wrapperEl, payload) => {
                 return;
             }
             const rate = Number(player.playbackRate || 1);
-            const boost = document.visibilityState === 'hidden' ? 2.0 : 1.0;
+            const boost = document.visibilityState === 'hidden' ? 2 : 1;
             const cap = Math.max(1.5, rate * 1.5) * boost;
             if (delta > 0 && delta < cap) {
                 watched = addInterval(watched, lastTime, t);
@@ -418,7 +465,7 @@ export const mount = async(wrapperEl, payload) => {
             repaint();
         });
         player.addEventListener('ended', function() {
-            if (isFinite(player.duration) && player.duration > 0) {
+            if (Number.isFinite(player.duration) && player.duration > 0) {
                 // Snap the final interval up to duration so a natural end at
                 // 99.97% (float precision) still rounds to 100% coverage. Does
                 // NOT set hasCompleted — completion is coverage-only.
@@ -474,26 +521,28 @@ export const mount = async(wrapperEl, payload) => {
             if (!window.require) {
                 return;
             }
+            const onAjaxResponse = function(response) {
+                try {
+                    window.localStorage.removeItem('mod_fastpix_attempt_' + cmid);
+                } catch (e) {
+                    // Non-fatal.
+                }
+                if (response?.completion_state === 'complete') {
+                    hasCompleted = true;
+                    repaint();
+                }
+                return null;
+            };
+            const onAjaxError = function(err) {
+                if (window.console) {
+                    window.console.warn('[mod_fastpix] persist failed', err?.errorcode, err?.message);
+                }
+            };
             window.require(['core/ajax'], function(Ajax) {
                 Ajax.call([{
                     methodname: 'mod_fastpix_record_view_progress',
                     args: args
-                }])[0].then(function(response) {
-                    try {
-                        window.localStorage.removeItem('mod_fastpix_attempt_' + cmid);
-                    } catch (e) {
-                        // Non-fatal.
-                    }
-                    if (response && response.completion_state === 'complete') {
-                        hasCompleted = true;
-                        repaint();
-                    }
-                    return null;
-                }).catch(function(err) {
-                    if (window.console) {
-                        window.console.warn('[mod_fastpix] persist failed', err && err.errorcode, err && err.message);
-                    }
-                });
+                }])[0].then(onAjaxResponse).catch(onAjaxError);
             });
         }
         window.setInterval(function() {
