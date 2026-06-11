@@ -76,10 +76,22 @@ class custom_completion extends activity_custom_completion {
             return COMPLETION_COMPLETE;
         }
 
-        // Re-derive coverage from the stored intervals. Asset duration is the
-        // only thing we need from local_fastpix; deleted / unavailable asset
-        // is treated as incomplete (never block completion on an integration
-        // failure, but never grant it either).
+        return $this->evaluate_watched_percent($activity, $attempt);
+    }
+
+    /**
+     * Re-derive completion from the stored watch intervals against the activity
+     * threshold. Only reached while has_completed is still 0 (non-sticky path).
+     *
+     * Asset duration is the only thing we need from local_fastpix; a deleted /
+     * unavailable asset is treated as incomplete — never block completion on an
+     * integration failure, but never grant it either.
+     *
+     * @param \stdClass $activity The fastpix activity row.
+     * @param \stdClass $attempt The fastpix_attempt row for this user.
+     * @return int COMPLETION_COMPLETE or COMPLETION_INCOMPLETE.
+     */
+    private function evaluate_watched_percent(\stdClass $activity, \stdClass $attempt): int {
         $asset = asset_service::get_by_id((int)$attempt->asset_id);
         if ($asset === null) {
             return COMPLETION_INCOMPLETE;

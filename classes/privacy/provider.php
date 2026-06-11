@@ -173,37 +173,46 @@ class provider implements
             // recognisable header before our row-level data appears.
             helper::export_context_files($context, $contextlist->get_user());
 
-            $export = (object) [
-                'watched_intervals' => $attempt->watched_intervals,
-                'current_position'  => (float) $attempt->current_position,
-                'has_completed'     => (bool) $attempt->has_completed,
-                'seek_count'        => (int) $attempt->seek_count,
-                'fraud_count'       => (int) $attempt->fraud_count,
-                'last_fraud_reason' => $attempt->last_fraud_reason,
-                'completion_state'  => $attempt->completion_state,
-                'session_start_ts'  => transform::datetime($attempt->session_start_ts),
-                'last_callback_ts'  => !empty($attempt->last_callback_ts)
-                    ? transform::datetime($attempt->last_callback_ts)
-                    : null,
-                'milestone_25_at'   => !empty($attempt->milestone_25_at)
-                    ? transform::datetime($attempt->milestone_25_at) : null,
-                'milestone_50_at'   => !empty($attempt->milestone_50_at)
-                    ? transform::datetime($attempt->milestone_50_at) : null,
-                'milestone_75_at'   => !empty($attempt->milestone_75_at)
-                    ? transform::datetime($attempt->milestone_75_at) : null,
-                'milestone_100_at'  => !empty($attempt->milestone_100_at)
-                    ? transform::datetime($attempt->milestone_100_at) : null,
-                // The session_token is auth material (S6) — we declare it in
-                // get_metadata for completeness but redact it from the export
-                // body. Including it would let a downloaded SAR be replayed.
-                'session_token'     => '[redacted]',
-            ];
+            $export = self::build_attempt_export($attempt);
 
             writer::with_context($context)->export_data(
                 [get_string('privacy:path:attempt', 'mod_fastpix')],
                 $export
             );
         }
+    }
+
+    /**
+     * Build the exportable representation of one attempt row. The session_token
+     * is auth material (S6) — declared in get_metadata for completeness but
+     * redacted here, since including it would let a downloaded SAR be replayed.
+     *
+     * @param \stdClass $attempt The fastpix_attempt row.
+     * @return \stdClass The export object.
+     */
+    private static function build_attempt_export(\stdClass $attempt): \stdClass {
+        return (object) [
+            'watched_intervals' => $attempt->watched_intervals,
+            'current_position'  => (float) $attempt->current_position,
+            'has_completed'     => (bool) $attempt->has_completed,
+            'seek_count'        => (int) $attempt->seek_count,
+            'fraud_count'       => (int) $attempt->fraud_count,
+            'last_fraud_reason' => $attempt->last_fraud_reason,
+            'completion_state'  => $attempt->completion_state,
+            'session_start_ts'  => transform::datetime($attempt->session_start_ts),
+            'last_callback_ts'  => !empty($attempt->last_callback_ts)
+                ? transform::datetime($attempt->last_callback_ts)
+                : null,
+            'milestone_25_at'   => !empty($attempt->milestone_25_at)
+                ? transform::datetime($attempt->milestone_25_at) : null,
+            'milestone_50_at'   => !empty($attempt->milestone_50_at)
+                ? transform::datetime($attempt->milestone_50_at) : null,
+            'milestone_75_at'   => !empty($attempt->milestone_75_at)
+                ? transform::datetime($attempt->milestone_75_at) : null,
+            'milestone_100_at'  => !empty($attempt->milestone_100_at)
+                ? transform::datetime($attempt->milestone_100_at) : null,
+            'session_token'     => '[redacted]',
+        ];
     }
 
     /**

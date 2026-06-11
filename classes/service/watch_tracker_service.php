@@ -131,10 +131,7 @@ class watch_tracker_service {
      * @param \stdClass $activity            mdl_fastpix row (needs no_skip_required, completion_watch_percent, course)
      * @param \stdClass $attempt             mdl_fastpix_attempt row (mutated in-place)
      * @param \stdClass $asset               local_fastpix asset_summary DTO (needs duration)
-     * @param array<array{0:float,1:float}> $clientintervals  Decoded client payload (already capped)
-     * @param float $currentposition        Client-reported playback head, seconds
-     * @param bool  $endedfired             Client saw the 'ended' event
-     * @param int   $clientseekcount       Monotonic seek counter from client
+     * @param \stdClass $report             Client report bundle: intervals (array<[float,float]>), position (float), ended (bool), seekcount (int)
      * @param \context_module $context       Module context (for capability check)
      * @param int   $now                     Wall-clock time (for testability)
      * @return \stdClass {
@@ -148,14 +145,19 @@ class watch_tracker_service {
         \stdClass $activity,
         \stdClass $attempt,
         \stdClass $asset,
-        array $clientintervals,
-        float $currentposition,
-        bool $endedfired,
-        int $clientseekcount,
+        \stdClass $report,
         \context_module $context,
         int $now
     ): \stdClass {
         global $DB;
+
+        // $report bundles this callback's client values: intervals (array of
+        // [start,end] pairs), position (float seconds) and seekcount (int).
+        // 'ended' (bool) is carried for the external layer's fraud audit and is
+        // intentionally not consulted by the coverage logic (see CG4 note).
+        $clientintervals = (array)($report->intervals ?? []);
+        $currentposition = (float)($report->position ?? 0.0);
+        $clientseekcount = (int)($report->seekcount ?? 0);
 
         $existing = $this->decode_intervals_or_empty((string)($attempt->watched_intervals ?? ''));
         $duration = max(0, (int)($asset->duration ?? 0));
@@ -164,44 +166,16 @@ class watch_tracker_service {
         $clientclaimed   = $this->coverage_seconds($clientintervals);
         $clientmaxend   = $this->max_end($clientintervals);
 
-        // Fraud checks (S4) — fixed order, no short-circuit (PR-9).
-        $reasons = [];
-
-        // Check 1: exceeds_duration.
-        if ($duration > 0 && ($clientmaxend > $duration || $clientclaimed > $duration)) {
-            $reasons[] = 'exceeds_duration';
-        }
-
-        // Check 2: exceeds_wall_clock.
-        $elapsed = $now - (int)$attempt->session_start_ts;
-        if ($clientclaimed > $elapsed + self::WALL_CLOCK_TOLERANCE_S) {
-            $reasons[] = 'exceeds_wall_clock';
-        }
-
-        // Check 3: regression.
-        if ($clientclaimed < $serverpersisted) {
-            $reasons[] = 'regression';
-        }
-
-        // Check 4: implausible_gain.
-        $prevcallback = !empty($attempt->last_callback_ts)
-            ? (int)$attempt->last_callback_ts
-            : (int)$attempt->session_start_ts;
-        $gain = $clientclaimed - $serverpersisted;
-        $wall = $now - $prevcallback;
-        if ($gain > $wall + self::WALL_CLOCK_TOLERANCE_S) {
-            $reasons[] = 'implausible_gain';
-        }
-
-        // Check 5: capability_lost.
-        if (!has_capability('mod/fastpix:view', $context, (int)$attempt->userid, false)) {
-            $reasons[] = 'capability_lost';
-        }
-
-        // Check 6: seek_on_noskip.
-        if (!empty($activity->no_skip_required) && $clientseekcount > (int)$attempt->seek_count) {
-            $reasons[] = 'seek_on_noskip';
-        }
+        // Fraud checks (S4) — collected in collect_fraud_reasons() so the six
+        // checks live as one auditable, fixed-order block (PR-9: no drop /
+        // reorder / short-circuit). $metrics carries the pre-computed coverages.
+        $metrics = (object)[
+            'duration'        => $duration,
+            'serverpersisted' => $serverpersisted,
+            'clientclaimed'   => $clientclaimed,
+            'clientmaxend'    => $clientmaxend,
+        ];
+        $reasons = $this->collect_fraud_reasons($activity, $attempt, $context, $clientseekcount, $now, $metrics);
 
         if (!empty($reasons)) {
             // Increment fraud_count once per failing check. Record FIRST reason
@@ -296,9 +270,93 @@ class watch_tracker_service {
         // and persist the timestamp in the same row so replays do not re-fire.
         $this->fire_milestones_for($attempt, $coveragepercent, $now);
 
-        // Completion recomputation per CG4 — pass COMPLETION_UNKNOWN, not
-        // COMPLETION_COMPLETE, so Moodle invokes our custom_completion rule
-        // (Step 5). Tests with completion disabled skip this branch.
+        // Completion recomputation per CG4 (best-effort; never blocks recording).
+        $this->recompute_completion($activity, $attempt);
+
+        return (object)[
+            'attempt'          => $attempt,
+            'coverage_percent' => $coveragepercent,
+            'completion_state' => !empty($attempt->has_completed) ? 'complete' : 'in_progress',
+            'fraud_reasons'    => [],
+        ];
+    }
+
+    /**
+     * Run the six fraud checks in fixed order (S4 / PR-9). ALL six run on every
+     * call — never short-circuit. Returns every failing check's reason this call
+     * (caller increments fraud_count by the count and keeps reasons[0] as the
+     * recorded last_fraud_reason). Pure: reads only, no IO, no mutation.
+     *
+     * @param \stdClass $activity        mdl_fastpix row (no_skip_required).
+     * @param \stdClass $attempt         mdl_fastpix_attempt row.
+     * @param \context_module $context   Module context (for capability check).
+     * @param int $clientseekcount       Monotonic seek counter from client.
+     * @param int $now                   Wall-clock time.
+     * @param \stdClass $metrics         {duration, serverpersisted, clientclaimed, clientmaxend}.
+     * @return string[] Failing-check reasons, in check order.
+     */
+    private function collect_fraud_reasons(
+        \stdClass $activity,
+        \stdClass $attempt,
+        \context_module $context,
+        int $clientseekcount,
+        int $now,
+        \stdClass $metrics
+    ): array {
+        $reasons = [];
+
+        // Check 1: exceeds_duration.
+        if ($metrics->duration > 0
+            && ($metrics->clientmaxend > $metrics->duration || $metrics->clientclaimed > $metrics->duration)) {
+            $reasons[] = 'exceeds_duration';
+        }
+
+        // Check 2: exceeds_wall_clock.
+        $elapsed = $now - (int)$attempt->session_start_ts;
+        if ($metrics->clientclaimed > $elapsed + self::WALL_CLOCK_TOLERANCE_S) {
+            $reasons[] = 'exceeds_wall_clock';
+        }
+
+        // Check 3: regression.
+        if ($metrics->clientclaimed < $metrics->serverpersisted) {
+            $reasons[] = 'regression';
+        }
+
+        // Check 4: implausible_gain.
+        $prevcallback = !empty($attempt->last_callback_ts)
+            ? (int)$attempt->last_callback_ts
+            : (int)$attempt->session_start_ts;
+        $gain = $metrics->clientclaimed - $metrics->serverpersisted;
+        $wall = $now - $prevcallback;
+        if ($gain > $wall + self::WALL_CLOCK_TOLERANCE_S) {
+            $reasons[] = 'implausible_gain';
+        }
+
+        // Check 5: capability_lost.
+        if (!has_capability('mod/fastpix:view', $context, (int)$attempt->userid, false)) {
+            $reasons[] = 'capability_lost';
+        }
+
+        // Check 6: seek_on_noskip.
+        if (!empty($activity->no_skip_required) && $clientseekcount > (int)$attempt->seek_count) {
+            $reasons[] = 'seek_on_noskip';
+        }
+
+        return $reasons;
+    }
+
+    /**
+     * Best-effort completion recomputation (CG4). Passes COMPLETION_UNKNOWN —
+     * not COMPLETION_COMPLETE — so Moodle invokes our custom_completion rule.
+     * Never blocks progress recording on a completion-side failure; logs for
+     * audit. Tests with completion disabled skip the update.
+     *
+     * @param \stdClass $activity mdl_fastpix row (id, course).
+     * @param \stdClass $attempt  mdl_fastpix_attempt row (userid).
+     */
+    private function recompute_completion(\stdClass $activity, \stdClass $attempt): void {
+        global $DB;
+
         try {
             $course = $DB->get_record('course', ['id' => (int)$activity->course], '*', MUST_EXIST);
             // Pass course id to scope the lookup — protects against orphan
@@ -310,17 +368,8 @@ class watch_tracker_service {
                 $completion->update_state($cm, COMPLETION_UNKNOWN, (int)$attempt->userid);
             }
         } catch (\Throwable $e) {
-            // Completion is best-effort here — never block progress recording
-            // on a completion-side failure. Logged for audit.
             debugging('mod_fastpix: completion update_state failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
-
-        return (object)[
-            'attempt'          => $attempt,
-            'coverage_percent' => $coveragepercent,
-            'completion_state' => !empty($attempt->has_completed) ? 'complete' : 'in_progress',
-            'fraud_reasons'    => [],
-        ];
     }
 
     /**
@@ -369,17 +418,15 @@ class watch_tracker_service {
      * user-facing condition.
      */
     private function decode_intervals_or_empty(string $json): array {
-        if ($json === '' || $json === '[]') {
-            return [];
-        }
-        $decoded = json_decode($json, true);
-        if (!is_array($decoded)) {
-            return [];
-        }
         $clean = [];
-        foreach ($decoded as $iv) {
-            if (is_array($iv) && isset($iv[0], $iv[1])) {
-                $clean[] = [(float)$iv[0], (float)$iv[1]];
+        if ($json !== '' && $json !== '[]') {
+            $decoded = json_decode($json, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $iv) {
+                    if (is_array($iv) && isset($iv[0], $iv[1])) {
+                        $clean[] = [(float)$iv[0], (float)$iv[1]];
+                    }
+                }
             }
         }
         return $clean;

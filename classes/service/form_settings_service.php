@@ -60,12 +60,8 @@ class form_settings_service {
      *                    captionsmode, languagecode, captionsdraftid}
      */
     public function resolve(\stdClass $data): \stdClass {
-        $noskiprequired = isset($data->no_skip_required)
-            ? ((int)(bool)$data->no_skip_required)
-            : (optional_param('no_skip_required', 0, PARAM_BOOL) ? 1 : 0);
-        $defaultshowcaptions = isset($data->default_show_captions)
-            ? ((int)(bool)$data->default_show_captions)
-            : (optional_param('default_show_captions', 0, PARAM_BOOL) ? 1 : 0);
+        $noskiprequired = $this->resolve_bool_flag($data, 'no_skip_required');
+        $defaultshowcaptions = $this->resolve_bool_flag($data, 'default_show_captions');
 
         $accesspolicy = isset($data->access_policy)
             ? $data->access_policy
@@ -80,7 +76,7 @@ class form_settings_service {
         $rawmode = isset($data->captionsmode)
             ? $data->captionsmode
             : optional_param('captionsmode', 'auto', PARAM_ALPHA);
-        $captionsmode = $captionsenabled ? ($rawmode === 'vtt' ? 'vtt' : 'auto') : 'none';
+        $captionsmode = $this->resolve_captions_mode($captionsenabled, (string)$rawmode);
         $rawlang = isset($data->languagecode)
             ? $data->languagecode
             : optional_param('languagecode', '', PARAM_ALPHA);
@@ -97,6 +93,35 @@ class form_settings_service {
             'languagecode'        => $languagecode,
             'captionsdraftid'     => $captionsdraftid,
         ];
+    }
+
+    /**
+     * Resolve a 0/1 player-behaviour flag: honour $data when present (programmatic
+     * callers), otherwise read it from POST (the raw-HTML toggles).
+     *
+     * @param \stdClass $data Submitted form data.
+     * @param string $field Field name, shared between the $data property and POST key.
+     * @return int 0 or 1.
+     */
+    private function resolve_bool_flag(\stdClass $data, string $field): int {
+        if (isset($data->$field)) {
+            return (int)(bool)$data->$field;
+        }
+        return optional_param($field, 0, PARAM_BOOL) ? 1 : 0;
+    }
+
+    /**
+     * Resolve the caption mode from the enabled toggle and the raw mode string.
+     *
+     * @param bool $enabled Whether captions are enabled.
+     * @param string $rawmode The submitted mode value.
+     * @return string One of none|auto|vtt.
+     */
+    private function resolve_captions_mode(bool $enabled, string $rawmode): string {
+        if (!$enabled) {
+            return 'none';
+        }
+        return $rawmode === 'vtt' ? 'vtt' : 'auto';
     }
 
     /**

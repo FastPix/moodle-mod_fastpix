@@ -33,6 +33,9 @@ use mod_fastpix\report\watch_report;
  * Dispatches a view_state DTO to the matching mustache template.
  */
 class renderer extends \plugin_renderer_base {
+    /** @var string Path to the activity's report endpoint, used to build report.php URLs. */
+    private const REPORT_URL = '/mod/fastpix/report.php';
+
     /**
      * Render the given view-state DTO to HTML.
      *
@@ -134,7 +137,7 @@ class renderer extends \plugin_renderer_base {
         foreach ($data->rows as $r) {
             $rows[] = [
                 'studentname'  => fullname($r->user),
-                'userurl'      => (new \moodle_url('/mod/fastpix/report.php', [
+                'userurl'      => (new \moodle_url(self::REPORT_URL, [
                     'id' => $cm->id, 'mode' => 'user', 'userid' => $r->userid,
                 ]))->out(false),
                 'watchpercent' => $r->coveragepercent,
@@ -160,7 +163,7 @@ class renderer extends \plugin_renderer_base {
             'dropofflabel'   => $data->summary->dropoff['atlabel'] ?? '',
             'dropoffpct'     => $data->summary->dropoff['droppct'] ?? 0,
             'chart'          => $this->coverage_chart($data->heatmap),
-            'downloadurl'    => (new \moodle_url('/mod/fastpix/report.php', [
+            'downloadurl'    => (new \moodle_url(self::REPORT_URL, [
                 'id' => $cm->id, 'mode' => 'video', 'download' => 'csv',
             ]))->out(false),
         ];
@@ -198,12 +201,12 @@ class renderer extends \plugin_renderer_base {
         $context = [
             'cmid'         => (int)$cm->id,
             'studentname'  => fullname($student),
-            'backurl'      => (new \moodle_url('/mod/fastpix/report.php', [
+            'backurl'      => (new \moodle_url(self::REPORT_URL, [
                 'id' => $cm->id, 'mode' => 'video',
             ]))->out(false),
             'hasrows'      => !empty($rows),
             'rows'         => $rows,
-            'downloadurl'  => (new \moodle_url('/mod/fastpix/report.php', [
+            'downloadurl'  => (new \moodle_url(self::REPORT_URL, [
                 'id' => $cm->id, 'mode' => 'user', 'userid' => (int)$student->id, 'download' => 'csv',
             ]))->out(false),
         ];
@@ -279,7 +282,13 @@ class renderer extends \plugin_renderer_base {
             if (!isset($labels[$i])) {
                 continue;
             }
-            $anchor = $i === 0 ? 'start' : ($i === $n - 1 ? 'end' : 'middle');
+            if ($i === 0) {
+                $anchor = 'start';
+            } else if ($i === $n - 1) {
+                $anchor = 'end';
+            } else {
+                $anchor = 'middle';
+            }
             $xlabels .= \html_writer::tag('text', s($labels[$i]), [
                 'class' => 'fastpix-eng-xlabel', 'x' => round($xfor($i), 1), 'y' => $h - 8, 'text-anchor' => $anchor,
             ]);

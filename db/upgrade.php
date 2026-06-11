@@ -52,44 +52,7 @@ function xmldb_fastpix_upgrade($oldversion) {
         // Phase D Slice A Step 1 — switch fastpix_attempt from scalar
         // watched_seconds to interval-set + resume position + sticky
         // completion flag.
-        $table = new xmldb_table('fastpix_attempt');
-
-        $fieldold = new xmldb_field('watched_seconds');
-        if ($dbman->field_exists($table, $fieldold)) {
-            $dbman->drop_field($table, $fieldold);
-        }
-
-        // The watched_intervals column — Moodle DDL forbids defaults on TEXT columns, so
-        // adding it as NOT NULL to a non-empty table fails. Standard 3-step:
-        // add nullable, backfill, promote to NOT NULL.
-        $fintervalsnullable = new xmldb_field('watched_intervals', XMLDB_TYPE_TEXT, null, null, null, null, null, 'seek_count');
-        if (!$dbman->field_exists($table, $fintervalsnullable)) {
-            $dbman->add_field($table, $fintervalsnullable);
-            $DB->execute("UPDATE {fastpix_attempt} SET watched_intervals = '' WHERE watched_intervals IS NULL");
-            $fintervalsnotnull = new xmldb_field(
-                'watched_intervals',
-                XMLDB_TYPE_TEXT,
-                null,
-                null,
-                XMLDB_NOTNULL,
-                null,
-                null,
-                'seek_count'
-            );
-            $dbman->change_field_notnull($table, $fintervalsnotnull);
-        }
-
-        // Numeric columns: DEFAULT in-schema is supported, no 3-step needed.
-        $numericfields = [
-            new xmldb_field('current_position', XMLDB_TYPE_NUMBER, '10,3', null, XMLDB_NOTNULL, null, '0', 'watched_intervals'),
-            new xmldb_field('has_completed', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'current_position'),
-        ];
-        foreach ($numericfields as $f) {
-            if (!$dbman->field_exists($table, $f)) {
-                $dbman->add_field($table, $f);
-            }
-        }
-
+        fastpix_upgrade_attempt_to_intervals($dbman);
         upgrade_mod_savepoint(true, 2026051300, 'fastpix');
     }
 
@@ -110,23 +73,82 @@ function xmldb_fastpix_upgrade($oldversion) {
 
     if ($oldversion < 2026060801) {
         // Media settings — access policy + caption source columns on mdl_fastpix.
-        // Numeric/char DEFAULTs are supported in-schema, so a single add_field
-        // each (guarded by field_exists for idempotency) is enough.
-        $table = new xmldb_table('fastpix');
-
-        $fields = [
-            new xmldb_field('access_policy', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, 'private', 'default_show_captions'),
-            new xmldb_field('captions_mode', XMLDB_TYPE_CHAR, '8', null, XMLDB_NOTNULL, null, 'none', 'access_policy'),
-            new xmldb_field('language_code', XMLDB_TYPE_CHAR, '8', null, null, null, null, 'captions_mode'),
-        ];
-        foreach ($fields as $field) {
-            if (!$dbman->field_exists($table, $field)) {
-                $dbman->add_field($table, $field);
-            }
-        }
-
+        fastpix_upgrade_add_media_settings($dbman);
         upgrade_mod_savepoint(true, 2026060801, 'fastpix');
     }
 
     return true;
+}
+
+/**
+ * Phase D Slice A Step 1 — migrate fastpix_attempt from a scalar watched_seconds
+ * column to interval-set tracking (watched_intervals + current_position +
+ * has_completed). Idempotent: every change is guarded by field_exists.
+ *
+ * @param database_manager $dbman The DB manager.
+ * @return void
+ */
+function fastpix_upgrade_attempt_to_intervals($dbman) {
+    global $DB;
+
+    $table = new xmldb_table('fastpix_attempt');
+
+    $fieldold = new xmldb_field('watched_seconds');
+    if ($dbman->field_exists($table, $fieldold)) {
+        $dbman->drop_field($table, $fieldold);
+    }
+
+    // The watched_intervals column — Moodle DDL forbids defaults on TEXT columns, so
+    // adding it as NOT NULL to a non-empty table fails. Standard 3-step:
+    // add nullable, backfill, promote to NOT NULL.
+    $fintervalsnullable = new xmldb_field('watched_intervals', XMLDB_TYPE_TEXT, null, null, null, null, null, 'seek_count');
+    if (!$dbman->field_exists($table, $fintervalsnullable)) {
+        $dbman->add_field($table, $fintervalsnullable);
+        $DB->execute("UPDATE {fastpix_attempt} SET watched_intervals = '' WHERE watched_intervals IS NULL");
+        $fintervalsnotnull = new xmldb_field(
+            'watched_intervals',
+            XMLDB_TYPE_TEXT,
+            null,
+            null,
+            XMLDB_NOTNULL,
+            null,
+            null,
+            'seek_count'
+        );
+        $dbman->change_field_notnull($table, $fintervalsnotnull);
+    }
+
+    // Numeric columns: DEFAULT in-schema is supported, no 3-step needed.
+    $numericfields = [
+        new xmldb_field('current_position', XMLDB_TYPE_NUMBER, '10,3', null, XMLDB_NOTNULL, null, '0', 'watched_intervals'),
+        new xmldb_field('has_completed', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'current_position'),
+    ];
+    foreach ($numericfields as $f) {
+        if (!$dbman->field_exists($table, $f)) {
+            $dbman->add_field($table, $f);
+        }
+    }
+}
+
+/**
+ * Add the media-settings columns (access policy + caption source) to mdl_fastpix.
+ * Char/numeric DEFAULTs are supported in-schema, so a single guarded add_field
+ * each is enough; field_exists keeps it idempotent.
+ *
+ * @param database_manager $dbman The DB manager.
+ * @return void
+ */
+function fastpix_upgrade_add_media_settings($dbman) {
+    $table = new xmldb_table('fastpix');
+
+    $fields = [
+        new xmldb_field('access_policy', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, 'private', 'default_show_captions'),
+        new xmldb_field('captions_mode', XMLDB_TYPE_CHAR, '8', null, XMLDB_NOTNULL, null, 'none', 'access_policy'),
+        new xmldb_field('language_code', XMLDB_TYPE_CHAR, '8', null, null, null, null, 'captions_mode'),
+    ];
+    foreach ($fields as $field) {
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+    }
 }

@@ -42,13 +42,13 @@ const COMPLETE_COLOR = '#1A7F37';
 const STORAGE_KEY_PREFIX = 'mod_fastpix_attempt_';
 
 /** Server errorcodes that mean "stop tracking" (don't bother retrying). */
-const STOP_ERRORCODES = [
+const STOP_ERRORCODES = new Set([
     'error_session_invalid',
     'error_session_no_attempt',
     'error_session_finalised',
     'nopermissions',                  // Moodle's required_capability_exception
     'requiresignedin',
-];
+]);
 
 /** Idempotency guard — init() may be called more than once on the same DOM. */
 let initWired = false;
@@ -65,10 +65,10 @@ let initWired = false;
 const addInterval = (arr, start, end) => {
     const combined = arr.concat([[start, end]]).sort((a, b) => a[0] - b[0]);
     const merged = [];
-    for (let i = 0; i < combined.length; i++) {
-        const cur = combined[i];
-        if (merged.length && cur[0] - merged[merged.length - 1][1] <= MERGE_EPS_S) {
-            merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], cur[1]);
+    for (const cur of combined) {
+        const last = merged.at(-1);
+        if (last && cur[0] - last[1] <= MERGE_EPS_S) {
+            last[1] = Math.max(last[1], cur[1]);
         } else {
             merged.push([cur[0], cur[1]]);
         }
@@ -84,8 +84,8 @@ const addInterval = (arr, start, end) => {
  */
 const sumCoverage = (arr) => {
     let total = 0;
-    for (let i = 0; i < arr.length; i++) {
-        total += Math.max(0, arr[i][1] - arr[i][0]);
+    for (const interval of arr) {
+        total += Math.max(0, interval[1] - interval[0]);
     }
     return total;
 };
@@ -279,8 +279,8 @@ export const init = (player, config) => {
             }
             return null;
         }).catch((err) => {
-            const code = err && err.errorcode ? String(err.errorcode) : '';
-            if (STOP_ERRORCODES.indexOf(code) !== -1) {
+            const code = err?.errorcode ? String(err.errorcode) : '';
+            if (STOP_ERRORCODES.has(code)) {
                 stopped = true;
             }
             // Otherwise: keep tracking. localStorage still holds the snapshot;
@@ -293,136 +293,134 @@ export const init = (player, config) => {
     // player is mounted before this code runs.
     updateProgressUI();
 
-    {
-        player.addEventListener('play', () => {
-            // tt.md edge case #25 — replay/resume. A play event after pause
-            // (or after natural ended) must clear transient session flags so
-            // stale state from the prior playback window doesn't freeze the
-            // strip or mis-signal the server:
-            //   * isSeeking can get stuck `true` if the underlying media
-            //     element fired `seeking` without a paired `seeked` during
-            //     buffer realignment — the tick handler would then early-
-            //     return on every timeupdate and the bar would freeze.
-            //   * endedFired sticking `true` would keep telling the server
-            //     "user reached natural end" on every subsequent persist,
-            //     which is fine for an already-completed attempt but wrong
-            //     once we treat this as a new tracking window.
-            endedFired = false;
-            isSeeking  = false;
-            lastTime   = Number(media.currentTime || 0);
-        });
+    player.addEventListener('play', () => {
+        // tt.md edge case #25 — replay/resume. A play event after pause
+        // (or after natural ended) must clear transient session flags so
+        // stale state from the prior playback window doesn't freeze the
+        // strip or mis-signal the server:
+        //   * isSeeking can get stuck `true` if the underlying media
+        //     element fired `seeking` without a paired `seeked` during
+        //     buffer realignment — the tick handler would then early-
+        //     return on every timeupdate and the bar would freeze.
+        //   * endedFired sticking `true` would keep telling the server
+        //     "user reached natural end" on every subsequent persist,
+        //     which is fine for an already-completed attempt but wrong
+        //     once we treat this as a new tracking window.
+        endedFired = false;
+        isSeeking  = false;
+        lastTime   = Number(media.currentTime || 0);
+    });
 
-        player.addEventListener('seeking', () => {
-            isSeeking = true;
-        });
+    player.addEventListener('seeking', () => {
+        isSeeking = true;
+    });
 
-        player.addEventListener('seeked', () => {
-            isSeeking = false;
-            seekCount += 1;
-            lastTime = Number(media.currentTime || 0);
-        });
+    player.addEventListener('seeked', () => {
+        isSeeking = false;
+        seekCount += 1;
+        lastTime = Number(media.currentTime || 0);
+    });
 
-        player.addEventListener('timeupdate', () => {
-            if (stopped) {
-                return;
-            }
-            const t = Number(media.currentTime || 0);
-            if (isSeeking) {
-                lastTime = t;
-                return;
-            }
-            const delta = t - lastTime;
-
-            // tt.md edge case #29 — loop mode. <video loop=true> wraps from
-            // end → 0 WITHOUT firing a seeking event. Negative delta + no
-            // seek means the boundary crossed implicitly; don't credit the
-            // jump (we already credited up to lastTime on the prior tick),
-            // just resync.
-            if (delta < 0 && !isSeeking) {
-                lastTime = t;
-                return;
-            }
-
-            // tt.md edge case #27 — fast playback adjustment. At 2× rate,
-            // normal timeupdate delta is ~0.5s; a hardcoded 1.5s cap would
-            // reject legitimate 2×-watching as a skip whenever the browser
-            // batched two ticks. Scale by playbackRate.
-            //
-            // tt.md edge case #17 — backgrounded tab throttling. Browsers
-            // throttle timeupdate from ~4 Hz to ~1 Hz when the tab is
-            // hidden. Apply a 2× boost so legitimate background watching
-            // (audio-only catch-up) isn't rejected.
-            const rate = Number(media.playbackRate || 1);
-            const visibilityBoost = document.visibilityState === 'hidden' ? 2.0 : 1.0;
-            const maxDelta = Math.max(MIN_DELTA_CAP_S, rate * MIN_DELTA_CAP_S) * visibilityBoost;
-            if (delta > 0 && delta < maxDelta) {
-                watched = addInterval(watched, lastTime, t);
-                updateProgressUI();
-            }
+    player.addEventListener('timeupdate', () => {
+        if (stopped) {
+            return;
+        }
+        const t = Number(media.currentTime || 0);
+        if (isSeeking) {
             lastTime = t;
-        });
+            return;
+        }
+        const delta = t - lastTime;
 
-        player.addEventListener('ended', () => {
-            // tt.md edge case #23 — snap final interval to full duration.
-            // Browsers fire `ended` when the playback head reaches duration,
-            // but the final `timeupdate` may have been at 99.97; without
-            // this snap, the interval set tops out at 99.97 / duration
-            // and progressbar shows 99% instead of 100%. The has_completed
-            // flag is also set unconditionally below so completion fires
-            // regardless of coverage math precision.
-            if (isFinite(media.duration) && media.duration > 0) {
-                watched = addInterval(watched, lastTime, media.duration);
-                lastTime = media.duration;
-            }
-            endedFired = true;
-            hasCompleted = true;
+        // tt.md edge case #29 — loop mode. <video loop=true> wraps from
+        // end → 0 WITHOUT firing a seeking event. Negative delta + no
+        // seek means the boundary crossed implicitly; don't credit the
+        // jump (we already credited up to lastTime on the prior tick),
+        // just resync.
+        if (delta < 0 && !isSeeking) {
+            lastTime = t;
+            return;
+        }
+
+        // tt.md edge case #27 — fast playback adjustment. At 2× rate,
+        // normal timeupdate delta is ~0.5s; a hardcoded 1.5s cap would
+        // reject legitimate 2×-watching as a skip whenever the browser
+        // batched two ticks. Scale by playbackRate.
+        //
+        // tt.md edge case #17 — backgrounded tab throttling. Browsers
+        // throttle timeupdate from ~4 Hz to ~1 Hz when the tab is
+        // hidden. Apply a 2× boost so legitimate background watching
+        // (audio-only catch-up) isn't rejected.
+        const rate = Number(media.playbackRate || 1);
+        const visibilityBoost = document.visibilityState === 'hidden' ? 2 : 1;
+        const maxDelta = Math.max(MIN_DELTA_CAP_S, rate * MIN_DELTA_CAP_S) * visibilityBoost;
+        if (delta > 0 && delta < maxDelta) {
+            watched = addInterval(watched, lastTime, t);
             updateProgressUI();
+        }
+        lastTime = t;
+    });
+
+    player.addEventListener('ended', () => {
+        // tt.md edge case #23 — snap final interval to full duration.
+        // Browsers fire `ended` when the playback head reaches duration,
+        // but the final `timeupdate` may have been at 99.97; without
+        // this snap, the interval set tops out at 99.97 / duration
+        // and progressbar shows 99% instead of 100%. The has_completed
+        // flag is also set unconditionally below so completion fires
+        // regardless of coverage math precision.
+        if (Number.isFinite(media.duration) && media.duration > 0) {
+            watched = addInterval(watched, lastTime, media.duration);
+            lastTime = media.duration;
+        }
+        endedFired = true;
+        hasCompleted = true;
+        updateProgressUI();
+        persist(player);
+    });
+
+    // tt.md edge case #26 — buffering stall. The browser fires `waiting`
+    // when the network can't keep up; resync lastTime so the dry stretch
+    // doesn't get credited as watched when playback resumes.
+    player.addEventListener('waiting', () => {
+        lastTime = Number(media.currentTime || 0);
+    });
+
+    // tt.md edge case #24 — source changed. Rare in practice (only fires
+    // when a teacher swaps the asset on the activity mid-session, which
+    // is currently forbidden by mod_form's asset-swap guard for any
+    // activity with real attempts — see playback_service::has_attempts_for).
+    // Defensive: reset client state if the playback-id attribute on the
+    // element ever changes between loadedmetadata events.
+    player.addEventListener('loadedmetadata', () => {
+        const newId = player.getAttribute('playback-id');
+        if (currentPlaybackId === null) {
+            currentPlaybackId = newId;
+            return;
+        }
+        if (newId && newId !== currentPlaybackId) {
+            watched = [];
+            lastTime = 0;
+            hasCompleted = false;
+            currentPlaybackId = newId;
+        }
+    });
+
+    player.addEventListener('pause', () => {
+        persist(player);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
             persist(player);
-        });
+        }
+    });
 
-        // tt.md edge case #26 — buffering stall. The browser fires `waiting`
-        // when the network can't keep up; resync lastTime so the dry stretch
-        // doesn't get credited as watched when playback resumes.
-        player.addEventListener('waiting', () => {
-            lastTime = Number(media.currentTime || 0);
-        });
+    window.addEventListener('pagehide', () => {
+        persist(player);
+    });
 
-        // tt.md edge case #24 — source changed. Rare in practice (only fires
-        // when a teacher swaps the asset on the activity mid-session, which
-        // is currently forbidden by mod_form's asset-swap guard for any
-        // activity with real attempts — see playback_service::has_attempts_for).
-        // Defensive: reset client state if the playback-id attribute on the
-        // element ever changes between loadedmetadata events.
-        player.addEventListener('loadedmetadata', () => {
-            const newId = player.getAttribute('playback-id');
-            if (currentPlaybackId === null) {
-                currentPlaybackId = newId;
-                return;
-            }
-            if (newId && newId !== currentPlaybackId) {
-                watched = [];
-                lastTime = 0;
-                hasCompleted = false;
-                currentPlaybackId = newId;
-            }
-        });
-
-        player.addEventListener('pause', () => {
-            persist(player);
-        });
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                persist(player);
-            }
-        });
-
-        window.addEventListener('pagehide', () => {
-            persist(player);
-        });
-
-        window.setInterval(() => {
-            persist(player);
-        }, PERSIST_THROTTLE_MS);
-    }
+    window.setInterval(() => {
+        persist(player);
+    }, PERSIST_THROTTLE_MS);
 };

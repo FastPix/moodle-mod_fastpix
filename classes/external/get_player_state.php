@@ -116,7 +116,6 @@ class get_player_state extends external_api {
         self::validate_context($context);
         require_capability('mod/fastpix:view', $context);
 
-        $course   = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
         $activity = $DB->get_record('fastpix', ['id' => $cm->instance], '*', MUST_EXIST);
         $cminfo   = \cm_info::create($cm);
 

@@ -131,8 +131,26 @@ class playback_service {
      * with reason 'videounavailable' otherwise (ADR-010).
      */
     public function resolve_for_view(\stdClass $activity, int $userid, \cm_info $cm): object {
-        global $CFG, $DB;
+        global $CFG;
         require_once($CFG->dirroot . '/course/lib.php');
+
+        $asset = $this->resolve_asset($activity);
+
+        // Pre-player gating (missing / soft-deleted / not-ready) yields a
+        // processing or error state; null means proceed to the player path.
+        $prestate = $this->pre_player_state($activity, $cm, $asset);
+        return $prestate ?? $this->build_player_state($activity, $userid, $cm, $asset);
+    }
+
+    /**
+     * Resolve the linked asset for an activity, performing the idempotent
+     * fastpix_asset_id backfill and registering the lifecycle reference.
+     *
+     * @param \stdClass $activity The activity row (mutated with the backfilled id).
+     * @return object|null The asset summary, or null if none is linked yet.
+     */
+    private function resolve_asset(\stdClass $activity): ?object {
+        global $DB;
 
         $asset = null;
 
@@ -163,80 +181,135 @@ class playback_service {
             );
         }
 
+        return $asset;
+    }
+
+    /**
+     * Gate the pre-player conditions: no asset, soft-deleted, or not yet ready.
+     *
+     * @param \stdClass $activity The activity row.
+     * @param \cm_info $cm The course module.
+     * @param object|null $asset The resolved asset, or null.
+     * @return object|null A processing/error view-state, or null to proceed to the player.
+     */
+    private function pre_player_state(\stdClass $activity, \cm_info $cm, ?object $asset): ?object {
         if ($asset === null) {
             // No fastpix_asset_id and no resolvable upload_session → still processing.
             // No upload_session at all → asset truly unavailable.
-            if (!empty($activity->upload_session_id)) {
-                return new view_state_processing(
-                    activityid:       (int)$activity->id,
-                    cmid:             (int)$cm->id,
-                    uploadsessionid: (int)$activity->upload_session_id,
-                    activityname:     (string)$activity->name,
-                );
-            }
-            return new view_state_error('videounavailable', (string)$activity->name);
+            return !empty($activity->upload_session_id)
+                ? $this->processing_state($activity, $cm)
+                : $this->unavailable_state($activity);
         }
 
         if (!empty($asset->deleted_at)) {
-            return new view_state_error('videounavailable', (string)$activity->name);
+            return $this->unavailable_state($activity);
         }
 
-        if ($asset->status !== 'ready') {
-            return new view_state_processing(
-                activityid:       (int)$activity->id,
-                cmid:             (int)$cm->id,
-                uploadsessionid: !empty($activity->upload_session_id) ? (int)$activity->upload_session_id : null,
-                activityname:     (string)$activity->name,
-            );
-        }
+        return $asset->status !== 'ready' ? $this->processing_state($activity, $cm) : null;
+    }
 
+    /**
+     * Mint the playback payload and reduce it to a player (or fallback) state.
+     * The attempt row is created BEFORE payload resolution so the session token
+     * is anchored even when the payload gating falls back to a non-player state.
+     *
+     * @param \stdClass $activity The activity row.
+     * @param int $userid The viewing user.
+     * @param \cm_info $cm The course module.
+     * @param object $asset The ready, non-deleted asset.
+     * @return object One of the view_state_* DTOs.
+     */
+    private function build_player_state(\stdClass $activity, int $userid, \cm_info $cm, object $asset): object {
         $attempt = $this->get_or_create_attempt($activity, $userid, $asset);
 
         try {
             $payload = lf_playback_service::resolve((string)$asset->fastpix_id, $userid);
         } catch (asset_not_found $e) {
-            return new view_state_error('videounavailable', (string)$activity->name);
+            return $this->unavailable_state($activity);
         } catch (asset_not_ready $e) {
-            return new view_state_processing(
-                activityid:       (int)$activity->id,
-                cmid:             (int)$cm->id,
-                uploadsessionid: !empty($activity->upload_session_id) ? (int)$activity->upload_session_id : null,
-                activityname:     (string)$activity->name,
-            );
+            return $this->processing_state($activity, $cm);
         }
 
+        return $this->player_or_fallback_state($activity, $cm, $asset, $payload, $attempt);
+    }
+
+    /**
+     * Reduce a resolved payload to a player state, or a fallback processing/error
+     * state when the playback id is missing or DRM cannot be honoured.
+     *
+     * @param \stdClass $activity The activity row.
+     * @param \cm_info $cm The course module.
+     * @param object $asset The ready asset.
+     * @param object $payload The playback payload from local_fastpix.
+     * @param \stdClass $attempt The attempt row anchoring the session token.
+     * @return object One of the view_state_* DTOs.
+     */
+    private function player_or_fallback_state(
+        \stdClass $activity,
+        \cm_info $cm,
+        object $asset,
+        object $payload,
+        \stdClass $attempt
+    ): object {
         // Defensive: an asset row can exist with status='ready' but
         // playback_id still null if the media.ready webhook split (asset
         // created event arrived but ready event was lost / delayed).
         // local_fastpix's resolve does not always throw asset_not_ready in
         // that case; treat empty playback_id as still-processing.
         if (empty($payload->playbackid)) {
-            return new view_state_processing(
-                activityid:       (int)$activity->id,
-                cmid:             (int)$cm->id,
-                uploadsessionid: !empty($activity->upload_session_id) ? (int)$activity->upload_session_id : null,
-                activityname:     (string)$activity->name,
-            );
+            return $this->processing_state($activity, $cm);
         }
 
         // Phase 2 DRM — read the optional drm_token (aud="drm:<id>" JWT)
-        // off the payload. Supported once local_fastpix's playback_service
-        // exposes it; older versions don't have the property and we get
-        // an empty string. If the asset requires DRM but no drm_token is
+        // off the payload. If the asset requires DRM but no drm_token is
         // available, refuse to render the player with a stale token —
         // show the graceful drm_unsupported error instead, which is less
         // confusing than the FastPix CDN's "Network Error" overlay.
-        $drmtoken = '';
-        if (isset($payload->drm_token)) {
-            $drmtoken = (string)$payload->drm_token;
-        } else if (isset($payload->drmtoken)) {
-            // Defensive — match local_fastpix's no-underscore property style.
-            $drmtoken = (string)$payload->drmtoken;
-        }
+        $drmtoken = $this->extract_drm_token($payload);
         if (!empty($payload->drmrequired) && $drmtoken === '') {
             return new view_state_error('drm_unsupported', (string)$activity->name);
         }
 
+        return $this->player_state($activity, $cm, $asset, $payload, $attempt, $drmtoken);
+    }
+
+    /**
+     * Read the optional DRM license JWT off the payload, tolerating both the
+     * underscore and no-underscore property styles local_fastpix may expose.
+     *
+     * @param object $payload The playback payload.
+     * @return string The DRM token, or '' when absent.
+     */
+    private function extract_drm_token(object $payload): string {
+        if (isset($payload->drm_token)) {
+            return (string)$payload->drm_token;
+        }
+        if (isset($payload->drmtoken)) {
+            // Defensive — match local_fastpix's no-underscore property style.
+            return (string)$payload->drmtoken;
+        }
+        return '';
+    }
+
+    /**
+     * Build the final player view-state from a resolved, validated payload.
+     *
+     * @param \stdClass $activity The activity row.
+     * @param \cm_info $cm The course module.
+     * @param object $asset The ready asset.
+     * @param object $payload The playback payload.
+     * @param \stdClass $attempt The attempt row.
+     * @param string $drmtoken The (possibly empty) DRM license token.
+     * @return view_state_player
+     */
+    private function player_state(
+        \stdClass $activity,
+        \cm_info $cm,
+        object $asset,
+        object $payload,
+        \stdClass $attempt,
+        string $drmtoken
+    ): view_state_player {
         // Phase D Slice A: compute the visible progress strip's first-paint
         // fill server-side so the bar shows correct % before tracker JS runs.
         $duration = (int)($asset->duration ?? 0);
@@ -298,6 +371,32 @@ class playback_service {
     }
 
     /**
+     * Build a "processing" view-state for an activity still awaiting a ready asset.
+     *
+     * @param \stdClass $activity The activity row.
+     * @param \cm_info $cm The course module.
+     * @return view_state_processing
+     */
+    private function processing_state(\stdClass $activity, \cm_info $cm): view_state_processing {
+        return new view_state_processing(
+            activityid:       (int)$activity->id,
+            cmid:             (int)$cm->id,
+            uploadsessionid: !empty($activity->upload_session_id) ? (int)$activity->upload_session_id : null,
+            activityname:     (string)$activity->name,
+        );
+    }
+
+    /**
+     * Build the "video unavailable" error view-state (ADR-010).
+     *
+     * @param \stdClass $activity The activity row.
+     * @return view_state_error
+     */
+    private function unavailable_state(\stdClass $activity): view_state_error {
+        return new view_state_error('videounavailable', (string)$activity->name);
+    }
+
+    /**
      * Look up the (userid, activity_id) attempt row. If the existing row's
      * session is within TTL, reuse it. Otherwise mint a new session_token
      * and reset session_start_ts. Phase D mutates watched_intervals,
@@ -329,22 +428,7 @@ class playback_service {
         $cm = get_coursemodule_from_instance('fastpix', (int)$activity->id, (int)$activity->course, false, MUST_EXIST);
         $context = \context_module::instance((int)$cm->id);
         if (has_capability('mod/fastpix:addinstance', $context, $userid, false)) {
-            return (object)[
-                'id'                => 0,
-                'userid'            => $userid,
-                'activity_id'       => (int)$activity->id,
-                'asset_id'          => (int)$asset->id,
-                'session_start_ts'  => $now,
-                'session_token'     => $tokens->issue($userid, (int)$activity->id, $now),
-                'last_callback_ts'  => null,
-                'watched_intervals' => '',
-                'current_position'  => 0.0,
-                'has_completed'     => 0,
-                'seek_count'        => 0,
-                'fraud_count'       => 0,
-                'last_fraud_reason' => null,
-                'completion_state'  => 'in_progress',
-            ];
+            return $this->preview_stub_attempt($activity, $userid, $asset, $tokens, $now);
         }
 
         $row = $DB->get_record(
@@ -355,6 +439,68 @@ class playback_service {
         if ($row && $tokens->is_within_ttl((int)$row->session_start_ts)) {
             return $row;
         }
+
+        return $this->persist_attempt($row ?: null, $activity, $userid, $asset, $tokens, $now);
+    }
+
+    /**
+     * Build the in-memory preview stub (id=0) for a teacher/admin viewing their
+     * own activity — never persisted; record_view_progress short-circuits on it.
+     *
+     * @param \stdClass $activity The activity row.
+     * @param int $userid The previewing user.
+     * @param \stdClass $asset The ready asset.
+     * @param session_token_service $tokens The session-token issuer.
+     * @param int $now The shared timestamp.
+     * @return \stdClass The stub attempt.
+     */
+    private function preview_stub_attempt(
+        \stdClass $activity,
+        int $userid,
+        \stdClass $asset,
+        session_token_service $tokens,
+        int $now
+    ): \stdClass {
+        return (object)[
+            'id'                => 0,
+            'userid'            => $userid,
+            'activity_id'       => (int)$activity->id,
+            'asset_id'          => (int)$asset->id,
+            'session_start_ts'  => $now,
+            'session_token'     => $tokens->issue($userid, (int)$activity->id, $now),
+            'last_callback_ts'  => null,
+            'watched_intervals' => '',
+            'current_position'  => 0.0,
+            'has_completed'     => 0,
+            'seek_count'        => 0,
+            'fraud_count'       => 0,
+            'last_fraud_reason' => null,
+            'completion_state'  => 'in_progress',
+        ];
+    }
+
+    /**
+     * Rotate the session on an existing (expired) attempt row, or insert a fresh
+     * one. Progress columns are preserved on the update path; only session_* and
+     * asset_id are reset.
+     *
+     * @param \stdClass|null $row The existing attempt row, or null to insert.
+     * @param \stdClass $activity The activity row.
+     * @param int $userid The viewing user.
+     * @param \stdClass $asset The ready asset.
+     * @param session_token_service $tokens The session-token issuer.
+     * @param int $now The shared timestamp.
+     * @return \stdClass The persisted attempt row.
+     */
+    private function persist_attempt(
+        ?\stdClass $row,
+        \stdClass $activity,
+        int $userid,
+        \stdClass $asset,
+        session_token_service $tokens,
+        int $now
+    ): \stdClass {
+        global $DB;
 
         if ($row) {
             $row->asset_id = (int)$asset->id;

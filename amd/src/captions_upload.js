@@ -58,7 +58,7 @@ const uploadFile = async (dropzone, file) => {
         );
         const data = await response.json();
         if (!data || data.error || data.errorcode) {
-            setStatus(dropzone, (data && data.error) || cfg.strings.uploaderror, 'danger');
+            setStatus(dropzone, data?.error || cfg.strings.uploaderror, 'danger');
             return;
         }
         dropzone.classList.add('has-file');
@@ -89,7 +89,7 @@ export const init = (config) => {
     }
 
     dropzone.addEventListener('click', (e) => {
-        if (e.target === browse || (browse && browse.contains(e.target))) {
+        if (e.target === browse || browse?.contains(e.target)) {
             return;
         }
         if (input) {
@@ -108,7 +108,7 @@ export const init = (config) => {
 
     if (input) {
         input.addEventListener('change', () => {
-            const file = input.files && input.files[0];
+            const file = input.files?.[0];
             if (file) {
                 uploadFile(dropzone, file);
             }
@@ -129,7 +129,7 @@ export const init = (config) => {
         e.preventDefault();
         e.stopPropagation();
         dropzone.classList.remove('is-dragging');
-        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        const file = e.dataTransfer?.files?.[0];
         if (file) {
             uploadFile(dropzone, file);
         }

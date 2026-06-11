@@ -28,6 +28,9 @@ defined('MOODLE_INTERNAL') || die();
 // available — descriptions stay as literal English here. For translators:
 // see lang/en/fastpix.php (web-service description strings live there if
 // future tooling supports lookup).
+// All three web services are gated on the same view capability.
+$viewcap = 'mod/fastpix:view';
+
 $functions = [
     'mod_fastpix_refresh_playback_token' => [
         'classname'    => '\mod_fastpix\external\refresh_playback_token',
@@ -35,7 +38,7 @@ $functions = [
         'description'  => 'Mint a fresh playback JWT before the current one expires.',
         'type'         => 'read',
         'ajax'         => true,
-        'capabilities' => 'mod/fastpix:view',
+        'capabilities' => $viewcap,
     ],
     'mod_fastpix_get_player_state' => [
         'classname'    => '\mod_fastpix\external\get_player_state',
@@ -46,7 +49,7 @@ $functions = [
         'description'  => 'Resolve the current player/processing/error state for an activity.',
         'type'         => 'write',
         'ajax'         => true,
-        'capabilities' => 'mod/fastpix:view',
+        'capabilities' => $viewcap,
     ],
     'mod_fastpix_record_view_progress' => [
         'classname'    => '\mod_fastpix\external\record_view_progress',
@@ -54,7 +57,7 @@ $functions = [
         'description'  => 'Persist client-reported watch progress with server-side fraud checks.',
         'type'         => 'write',
         'ajax'         => true,
-        'capabilities' => 'mod/fastpix:view',
+        'capabilities' => $viewcap,
     ],
 ];
 
