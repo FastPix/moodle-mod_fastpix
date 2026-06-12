@@ -23,7 +23,7 @@ tracker, completion and gradebook integration, and backup/restore.
 - Resumable chunked uploads with a live progress bar, so large files
   survive an unreliable connection.
 - URL-pull sources are validated by the `local_fastpix` SSRF guard.
-- **Protection & captions** per activity: choose an access policy
+- A **Media settings** section per activity: choose an access policy
   (Private / Public / DRM) and a captions mode — auto-generate in a
   chosen language, or upload your own WebVTT (`.vtt`) subtitle file.
   These are applied to the video when it is uploaded to FastPix.
@@ -148,14 +148,36 @@ needed once `local_fastpix` is connected.
 1. Open a course and turn **Edit mode** on.
 2. Select **Add an activity or resource**, then choose **FastPix Video**.
 3. Enter a **Name** and an optional **Description**.
-4. Add the video in the **Video source** section (see below).
-5. Set **Playback options**, **Activity completion**, and **Grade** as
+4. Set **Media settings** — access policy and captions (see below).
+5. Add the video in the **Video source** section (see below).
+6. Set **Playback options**, **Activity completion**, and **Grade** as
    needed.
-6. Select **Save and display**.
+7. Select **Save and display**.
 
 > **Important:** The video is uploaded to FastPix when you save the
 > activity, not while you are still filling in the form. If you choose a
 > file and then leave without saving, nothing is uploaded.
+
+### Media settings
+
+The **Media settings** section sits above **Video source**: pick how the
+video is protected and captioned before you add it. These choices are
+applied when the video is uploaded to FastPix, not afterwards.
+
+- **Access policy** — how playback is gated:
+  - **Private** (default, recommended): only logged-in learners can play.
+  - **Public**: anyone with the link can play.
+  - **DRM**: encrypted playback on licensed devices; the strongest
+    protection. Selectable only when `local_fastpix` has DRM configured;
+    otherwise saving the activity is rejected.
+- **Captions & transcript** — off by default. Turn the toggle on, then
+  choose one mode:
+  - **Auto-generate**: FastPix transcribes the audio in the **Language**
+    you pick. Subtitles match the spoken language; they are not
+    translated. English, Spanish, Italian, Portuguese, German, and French
+    are fully supported; further languages are offered tagged **(Beta)**.
+  - **Upload .vtt file**: drag in your own WebVTT subtitle file (one
+    `.vtt` per activity).
 
 ### Upload a video
 
@@ -227,6 +249,8 @@ underlying asset through `local_fastpix`.
 
 | Setting | Description | Default |
 |---|---|---|
+| **Access policy** | How playback is gated: Private (logged-in learners only), Public (anyone with the link), or DRM (encrypted; needs DRM configured in `local_fastpix`). | Private |
+| **Captions & transcript** | Auto-generate captions in a chosen language, or upload a `.vtt` file. Applied at upload. | Off |
 | **Video source** | Upload a file or pull from a URL through `local_fastpix`. | Required |
 | **Disable seeking** | Block forward seeks during playback. Backward seeks remain allowed. | Disabled |
 | **Show captions by default** | Turn captions on when the player loads. | Disabled |
