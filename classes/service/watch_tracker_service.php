@@ -131,7 +131,8 @@ class watch_tracker_service {
      * @param \stdClass $activity            mdl_fastpix row (needs no_skip_required, completion_watch_percent, course)
      * @param \stdClass $attempt             mdl_fastpix_attempt row (mutated in-place)
      * @param \stdClass $asset               local_fastpix asset_summary DTO (needs duration)
-     * @param \stdClass $report             Client report bundle: intervals (array<[float,float]>), position (float), ended (bool), seekcount (int)
+     * @param \stdClass $report             Client report bundle: intervals (array<[float,float]>),
+     *                                      position (float), ended (bool), seekcount (int)
      * @param \context_module $context       Module context (for capability check)
      * @param int   $now                     Wall-clock time (for testability)
      * @return \stdClass {
@@ -151,7 +152,7 @@ class watch_tracker_service {
     ): \stdClass {
         global $DB;
 
-        // $report bundles this callback's client values: intervals (array of
+        // Report bundles this callback's client values: intervals (array of
         // [start,end] pairs), position (float seconds) and seekcount (int).
         // 'ended' (bool) is carried for the external layer's fraud audit and is
         // intentionally not consulted by the coverage logic (see CG4 note).
@@ -306,8 +307,10 @@ class watch_tracker_service {
         $reasons = [];
 
         // Check 1: exceeds_duration.
-        if ($metrics->duration > 0
-            && ($metrics->clientmaxend > $metrics->duration || $metrics->clientclaimed > $metrics->duration)) {
+        if (
+            $metrics->duration > 0
+            && ($metrics->clientmaxend > $metrics->duration || $metrics->clientclaimed > $metrics->duration)
+        ) {
             $reasons[] = 'exceeds_duration';
         }
 
