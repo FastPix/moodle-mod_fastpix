@@ -370,7 +370,7 @@ class watch_report {
     /**
      * Render the reached milestones as a compact "25/50/75%" string (or '—').
      *
-     * @param array<int,bool> $milestones Map of milestone => reached.
+     * @param array $milestones Map of milestone => reached.
      * @return string Display text.
      */
     public function milestones_text(array $milestones): string {

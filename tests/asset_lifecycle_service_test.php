@@ -68,6 +68,11 @@ final class asset_lifecycle_service_test extends \advanced_testcase {
 
     /**
      * Stand up a mod_fastpix activity, optionally bound to an asset PK.
+     *
+     * @param int $courseid The course id.
+     * @param int|null $assetid The local_fastpix_asset id to link, or null.
+     * @param int|null $uploadsessionid The upload session id to set, or null.
+     * @return \stdClass The activity row.
      */
     private function create_activity(int $courseid, ?int $assetid, ?int $uploadsessionid = null): \stdClass {
         global $DB;

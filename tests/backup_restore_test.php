@@ -47,7 +47,7 @@ use restore_controller;
 use restore_dbops;
 use stdClass;
 /**
- * Tests for the class(es) listed in @covers.
+ * Tests for the listed class.
  *
  * @package    mod_fastpix
  * @category   test
@@ -124,6 +124,8 @@ final class backup_restore_test extends advanced_testcase {
      * canonical core harness (mod_h5pactivity). MODE_IMPORT writes an unzipped
      * backup dir; restore targets a fresh course.
      *
+     * @param stdClass $srccourse The source course to back up.
+     * @param bool $userdata Whether to include user data in the backup.
      * @return int the new course id
      */
     private function backup_and_restore(stdClass $srccourse, bool $userdata): int {

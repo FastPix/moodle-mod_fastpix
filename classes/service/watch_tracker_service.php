@@ -84,9 +84,9 @@ class watch_tracker_service {
      * Concat → sort by start → merge adjacent/overlapping (gap <= MERGE_EPS_S).
      * Output is sorted by start, non-overlapping. Pure; no IO.
      *
-     * @param array<array{0:float|int,1:float|int}> $existing
-     * @param array<array{0:float|int,1:float|int}> $new
-     * @return array<array{0:float,1:float}>
+     * @param array $existing Existing [start,end] interval pairs.
+     * @param array $new New [start,end] interval pairs to merge in.
+     * @return array Sorted, non-overlapping [start,end] pairs.
      */
     public function merge_intervals(array $existing, array $new): array {
         $all = [];
@@ -111,7 +111,8 @@ class watch_tracker_service {
     /**
      * Sum (end - start) over the interval set.
      *
-     * @param array<array{0:float|int,1:float|int}> $intervals
+     * @param array $intervals [start,end] interval pairs.
+     * @return float Total seconds covered.
      */
     public function coverage_seconds(array $intervals): float {
         $total = 0.0;
@@ -380,6 +381,11 @@ class watch_tracker_service {
      * by virtue of the milestone_*_at column being non-null sentinel.
      * The transaction makes the (set column, fire event) pair atomic so a
      * concurrent callback cannot double-fire.
+     *
+     * @param \stdClass $attempt The attempt row (mutated with milestone timestamps).
+     * @param int $coveragepercent Current coverage percentage.
+     * @param int $now Wall-clock timestamp.
+     * @return void
      */
     private function fire_milestones_for(\stdClass $attempt, int $coveragepercent, int $now): void {
         global $DB;
@@ -419,6 +425,9 @@ class watch_tracker_service {
      * on any error rather than throwing — the column is a server-owned
      * encoding and corrupt content here is an invariant break, not a
      * user-facing condition.
+     *
+     * @param string $json The stored watched_intervals JSON.
+     * @return array Decoded [start,end] pairs, or [] on error.
      */
     private function decode_intervals_or_empty(string $json): array {
         $clean = [];
@@ -437,6 +446,9 @@ class watch_tracker_service {
 
     /**
      * Largest interval end seen — used by fraud check ①.
+     *
+     * @param array $intervals [start,end] interval pairs.
+     * @return float The largest interval end value.
      */
     private function max_end(array $intervals): float {
         $max = 0.0;

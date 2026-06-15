@@ -33,7 +33,7 @@ namespace mod_fastpix;
 
 use mod_fastpix\completion\custom_completion;
 /**
- * Tests for the class(es) listed in @covers.
+ * Tests for the listed class.
  *
  * @package    mod_fastpix
  * @category   test
@@ -45,6 +45,10 @@ final class custom_completion_test extends \advanced_testcase {
      * exercise get_state() against a real attempt row. Seeds a
      * local_fastpix_asset row whose id is returned so callers can update
      * mdl_fastpix_attempt.asset_id to match.
+     *
+     * @param int $duration The asset duration in seconds.
+     * @param int $threshold The completion watch percentage.
+     * @return array [cm_info, studentid, activity, asset_id].
      */
     private function setup_fixture(int $duration = 100, int $threshold = 90): array {
         global $DB;
@@ -88,6 +92,13 @@ final class custom_completion_test extends \advanced_testcase {
     /**
      * Insert an attempt row mirroring the watch_intervals + has_completed
      * the test needs to seed. Returns the inserted row id.
+     *
+     * @param int $userid The user id.
+     * @param int $activityid The fastpix activity id.
+     * @param int $assetid The asset id snapshot.
+     * @param string $intervals The watched_intervals JSON.
+     * @param int $hascompleted The has_completed flag value.
+     * @return int The inserted attempt row id.
      */
     private function seed_attempt(int $userid, int $activityid, int $assetid, string $intervals = '', int $hascompleted = 0): int {
         global $DB;

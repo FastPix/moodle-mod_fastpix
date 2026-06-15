@@ -30,7 +30,7 @@
      * text. Uses an explicit success-green rgba (Boost doesn't expose --success
      * as an rgb triple, so a var()-based alpha can't be relied on here). A soft
      * drop-shadow lifts the pill off the dark video. */
-    color: #ffffff;
+    color: #fff;
     background-color: rgba(31, 122, 58, 0.9);
     border-radius: 999px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
@@ -96,6 +96,7 @@
     background-color: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.10);
 }
+
 @media (prefers-color-scheme: dark) {
     .mod_fastpix-lede {
         background-color: rgba(255, 255, 255, 0.05);
@@ -171,6 +172,10 @@
  * as a mask-image overlay — the fill colours inside the SVG are
  * invisible. Workaround: replace the container's background with the
  * full-colour brand SVG (inlined as a data URL) and hide the masked img. */
+/* stylelint-disable declaration-no-important, function-url-scheme-disallowed-list --
+   Intentional: overriding Boost's monologo→mask→tint icon pipeline requires
+   !important, and inlining the full-colour brand SVG requires a data: URI.
+   Documented workaround; see the comment block above. */
 .activityiconcontainer:has(img[src*="image.php"][src*="/fastpix/"]),
 .activityiconcontainer.modtype_fastpix,
 .activityiconcontainer.fastpix,
@@ -207,6 +212,7 @@ img[src*="mod_fastpix"][src*="icon"] {
     -webkit-mask: none !important;
     filter: none !important;
 }
+/* stylelint-enable declaration-no-important, function-url-scheme-disallowed-list */
 
 .fastpix-pb-intro {
     display: flex;
@@ -253,7 +259,7 @@ img[src*="mod_fastpix"][src*="icon"] {
 .fastpix-pb-options {
     border: 1px solid #e5e7eb;
     border-radius: 12px;
-    background: #ffffff;
+    background: #fff;
     overflow: hidden;
     margin-bottom: 1rem;
 }
@@ -531,6 +537,10 @@ img[src*="mod_fastpix"][src*="icon"] {
     border: 1px solid #d1d5db;
     border-radius: 8px;
 }
+/* stylelint-disable declaration-no-important --
+   Intentional: these override Bootstrap's .btn / form-control base styles, which
+   otherwise win on specificity and leave the URL button white and the input with
+   a blue focus glow. */
 /* No blue Bootstrap glow; keep the input shape stable on focus. */
 .fastpix-vs-url-input:focus,
 .fastpix-vs-url-input:focus-visible,
@@ -570,6 +580,7 @@ img[src*="mod_fastpix"][src*="icon"] {
     border-color: #5b21b6 !important;
     color: #fff !important;
 }
+/* stylelint-enable declaration-no-important */
 .fastpix-vs-url-btn:disabled {
     opacity: 0.65;
 }
@@ -710,15 +721,18 @@ img[src*="mod_fastpix"][src*="icon"] {
     border-radius: 50%;
     animation: fastpix-prep-spin 0.9s linear infinite;
 }
+
 @keyframes fastpix-prep-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 .fastpix-prep-title {
     margin: 0 0 8px;
     font-size: 1.5rem;
     font-weight: 700;
     line-height: 1.25;
-    color: #ffffff;
+    color: #fff;
 }
 .fastpix-prep-lede {
     margin: 0;
@@ -734,14 +748,28 @@ img[src*="mod_fastpix"][src*="icon"] {
     line-height: 1.45;
     color: rgba(255, 255, 255, 0.55);
 }
+
 @media (max-width: 600px) {
-    .fastpix-prep-frame   { padding: 16px; }
-    .fastpix-prep-spinner { width: 40px; height: 40px; margin-bottom: 18px; }
-    .fastpix-prep-title   { font-size: 1.2rem; }
-    .fastpix-prep-lede    { font-size: 0.875rem; }
+    .fastpix-prep-frame {
+        padding: 16px;
+    }
+    .fastpix-prep-spinner {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 18px;
+    }
+    .fastpix-prep-title {
+        font-size: 1.2rem;
+    }
+    .fastpix-prep-lede {
+        font-size: 0.875rem;
+    }
 }
+
 @media (prefers-reduced-motion: reduce) {
-    .fastpix-prep-spinner { animation: none; }
+    .fastpix-prep-spinner {
+        animation: none;
+    }
 }
 
 /* ---- Media settings section (activity edit form) ----
@@ -777,7 +805,10 @@ img[src*="mod_fastpix"][src*="icon"] {
     align-items: center;
     justify-content: center;
 }
-.fastpix-ms-ico svg { width: 18px; height: 18px; }
+.fastpix-ms-ico svg {
+    width: 18px;
+    height: 18px;
+}
 .fastpix-ms-title {
     font-size: 1rem;
     font-weight: 600;
@@ -899,8 +930,14 @@ img[src*="mod_fastpix"][src*="icon"] {
     background: rgba(236, 30, 91, 0.10);
     color: #ec1e5b;
 }
-.fastpix-cap-ico svg { width: 18px; height: 18px; }
-.fastpix-cap-headtext { flex: 1; min-width: 0; }
+.fastpix-cap-ico svg {
+    width: 18px;
+    height: 18px;
+}
+.fastpix-cap-headtext {
+    flex: 1;
+    min-width: 0;
+}
 .fastpix-cap-title {
     font-size: 0.95rem;
     font-weight: 600;
@@ -976,7 +1013,9 @@ img[src*="mod_fastpix"][src*="icon"] {
     background: rgba(236, 30, 91, 0.08);
     border-color: #ec1e5b;
 }
-.fastpix-cap-pane { display: none; }
+.fastpix-cap-pane {
+    display: none;
+}
 #fastpix_cap_auto:checked ~ .fastpix-cap-body .fastpix-cap-pane-auto,
 #fastpix_cap_vtt:checked ~ .fastpix-cap-body .fastpix-cap-pane-vtt {
     display: block;
@@ -1024,8 +1063,14 @@ img[src*="mod_fastpix"][src*="icon"] {
     border-style: solid;
     border-color: #ec1e5b;
 }
-.fastpix-vtt-ico { color: #ec1e5b; line-height: 0; }
-.fastpix-vtt-ico svg { width: 26px; height: 26px; }
+.fastpix-vtt-ico {
+    color: #ec1e5b;
+    line-height: 0;
+}
+.fastpix-vtt-ico svg {
+    width: 26px;
+    height: 26px;
+}
 .fastpix-vtt-main {
     margin-top: 9px;
     font-size: 0.875rem;
@@ -1036,7 +1081,9 @@ img[src*="mod_fastpix"][src*="icon"] {
     font-weight: 600;
     text-decoration: none;
 }
-.fastpix-vtt-browse:hover { text-decoration: underline; }
+.fastpix-vtt-browse:hover {
+    text-decoration: underline;
+}
 .fastpix-vtt-sub {
     margin-top: 4px;
     font-size: 0.75rem;
@@ -1047,9 +1094,15 @@ img[src*="mod_fastpix"][src*="icon"] {
     font-size: 0.8125rem;
     font-weight: 600;
 }
-.fastpix-vtt-status--muted { color: var(--bs-secondary-color, #6c757d); }
-.fastpix-vtt-status--success { color: var(--success, #1f7a3a); }
-.fastpix-vtt-status--danger { color: var(--danger, #dc2626); }
+.fastpix-vtt-status--muted {
+    color: var(--bs-secondary-color, #6c757d);
+}
+.fastpix-vtt-status--success {
+    color: var(--success, #1f7a3a);
+}
+.fastpix-vtt-status--danger {
+    color: var(--danger, #dc2626);
+}
 
 /* Dark theme: lift the pink tint + accent so the selected state reads on a dark
  * surface (Boost marks dark mode with data-bs-theme="dark"). Surfaces already
@@ -1105,7 +1158,9 @@ img[src*="mod_fastpix"][src*="icon"] {
 
 /* Engagement chart — inline SVG with a fixed 0-100 y-axis (Moodle's chart_line
  * can't lock the axis on Chart.js v4). Theme-token colours; brand-pink curve. */
-.fastpix-eng-chart { width: 100%; }
+.fastpix-eng-chart {
+    width: 100%;
+}
 .fastpix-eng-caption {
     margin-bottom: 4px;
     font-size: 0.75rem;

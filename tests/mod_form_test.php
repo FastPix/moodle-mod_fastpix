@@ -42,7 +42,7 @@ require_once($CFG->dirroot . '/mod/fastpix/mod_form.php');
 require_once($CFG->dirroot . '/mod/fastpix/lib.php');
 
 /**
- * Tests for the class(es) listed in @covers.
+ * Tests for the listed class.
  *
  * @package    mod_fastpix
  * @category   test
@@ -52,6 +52,9 @@ final class mod_form_test extends \advanced_testcase {
     /**
      * Reflection-stamped form instance — bypasses moodleform_mod's
      * constructor (which needs full course/section context).
+     *
+     * @param int $instanceid The activity instance id to stamp on the form.
+     * @return \mod_fastpix_mod_form The form instance.
      */
     private function make_form(int $instanceid = 0): \mod_fastpix_mod_form {
         $ref = new \ReflectionClass(\mod_fastpix_mod_form::class);
@@ -249,6 +252,9 @@ final class mod_form_test extends \advanced_testcase {
      * Build the $data object Moodle hands to fastpix_add_instance. The two
      * player-behaviour flags are deliberately NOT set on $data — they come
      * from POST, which is the bug this test guards.
+     *
+     * @param int $courseid The course id.
+     * @return \stdClass The form data object for fastpix_add_instance.
      */
     private function add_instance_data(int $courseid): \stdClass {
         return (object) [

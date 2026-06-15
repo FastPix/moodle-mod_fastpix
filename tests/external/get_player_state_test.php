@@ -64,28 +64,7 @@ final class get_player_state_test extends \advanced_testcase {
      * @return \stdClass the inserted row (with ->id)
      */
     private function insert_asset(array $overrides = []): \stdClass {
-        global $DB;
-        $now = time();
-        $row = (object)array_merge([
-            'fastpix_id'             => 'media_' . uniqid('', true),
-            'playback_id'            => 'pb_' . uniqid('', true),
-            'owner_userid'           => 0,
-            'title'                  => 'Phpunit asset',
-            'duration'               => 120,
-            'status'                 => 'ready',
-            'access_policy'          => 'public',
-            'drm_required'           => 0,
-            'no_skip_required'       => 0,
-            'has_captions'           => 0,
-            'last_event_id'          => null,
-            'last_event_at'          => null,
-            'deleted_at'             => null,
-            'gdpr_delete_pending_at' => null,
-            'timecreated'            => $now,
-            'timemodified'           => $now,
-        ], $overrides);
-        $row->id = $DB->insert_record('local_fastpix_asset', $row);
-        return $row;
+        return $this->getDataGenerator()->get_plugin_generator('mod_fastpix')->create_asset($overrides);
     }
 
     /**
