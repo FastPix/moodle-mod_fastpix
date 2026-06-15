@@ -1,3 +1,26 @@
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Upload widget for the mod_fastpix activity edit form.
+ *
+ * @module     mod_fastpix/upload_widget
+ * @copyright  2026 FastPix
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 // AMD module for the mod_fastpix activity edit form upload widget.
 //
 // Phase C unified panel:
@@ -34,8 +57,14 @@ import Templates from 'core/templates';
  * cannot use and the initial POST would return 405).
  *
  * https://www.npmjs.com/package/@fastpix/resumable-uploads
+ *
+ * Vendored locally (Moodle requires all JS served from the site, not a CDN).
+ * This is the upstream self-contained ESM build (dist/uploads.mjs, v1.0.5)
+ * saved as .js for static-MIME safety. The pinned version is tracked in
+ * thirdpartylibs.xml. Built from wwwroot at runtime so it works under any
+ * Moodle subdirectory install.
  */
-const UPLOAD_SDK_URL = 'https://cdn.jsdelivr.net/npm/@fastpix/resumable-uploads@latest/+esm';
+const UPLOAD_SDK_URL = M.cfg.wwwroot + '/mod/fastpix/thirdparty/resumable-uploads/uploads.js';
 
 /** Chunk size in KB (16 MB — matches the SDK default). */
 const UPLOAD_CHUNK_KB = 16384;
@@ -65,6 +94,9 @@ const SELECTORS = {
 // (where editing teachers hold the capability), not the system context.
 let widgetContextId = null;
 
+// Localised status strings supplied by init() (M7 — no English literals in JS).
+let widgetStrings = {};
+
 const getSessionField = (fieldname) => document.querySelector(`input[name="${fieldname}"]`);
 
 /**
@@ -79,7 +111,7 @@ const gatherUploadArgs = (file) => {
     const nameEl = document.querySelector('input[name="name"]');
     let title = nameEl?.value ? nameEl.value.trim() : '';
     if (!title) {
-        title = file?.name ? file.name.replace(/\.[^.]+$/, '') : 'Untitled video';
+        title = file?.name ? file.name.replace(/\.[^.]+$/, '') : (widgetStrings.untitledvideo || '');
     }
     const apEl = document.querySelector('input[name="access_policy"]:checked');
     const accesspolicy = apEl ? apEl.value : 'private';
@@ -179,9 +211,6 @@ const putToSignedUrl = async (file, uploadUrl, onProgress) => {
     try {
         sdk = await loadUploadSdk();
     } catch (e) {
-        if (window.console) {
-            console.error('[mod_fastpix] failed to load upload SDK', e);
-        }
         throw new Error('upload_sdk_load_failed');
     }
 
@@ -228,7 +257,7 @@ const showSuccessUI = (region) => {
     const progress = region.querySelector(SELECTORS.progressWrap);
     if (progress) { progress.hidden = true; }
     // Show just the completion state — not the filename.
-    setStatus(region, 'Upload complete. Save the activity to finalise.', 'success');
+    setStatus(region, widgetStrings.complete, 'success');
 };
 
 const showDropzoneUI = (region) => {
@@ -253,7 +282,7 @@ const handleFileSelected = async (region, sessionField, file) => {
     } catch (e) {
         Notification.exception(e);
         showDropzoneUI(region);
-        setStatus(region, 'Failed to create upload session.', 'danger');
+        setStatus(region, widgetStrings.sessionfailed, 'danger');
         return;
     }
 
@@ -271,8 +300,9 @@ const handleFileSelected = async (region, sessionField, file) => {
             if (pct) { pct.textContent = `${percent}%`; }
         });
     } catch (e) {
+        Notification.exception(e);
         showDropzoneUI(region);
-        setStatus(region, `Upload failed: ${e.message}`, 'danger');
+        setStatus(region, widgetStrings.failed, 'danger');
         return;
     }
 
@@ -346,12 +376,12 @@ const wireDropzone = (region, sessionField) => {
 const validateUrl = async (sessionField, button) => {
     const urlInput = document.querySelector(SELECTORS.sourceUrl);
     if (!urlInput?.value) {
-        setUrlStatus('Enter a URL first.', 'warning');
+        setUrlStatus(widgetStrings.urlenterfirst, 'warning');
         return;
     }
 
     setSourceType('urlpull');
-    setUrlStatus('Uploading…', 'muted');
+    setUrlStatus(widgetStrings.uploading, 'muted');
     if (button) { button.disabled = true; }
 
     let session;
@@ -362,13 +392,13 @@ const validateUrl = async (sessionField, button) => {
         }]));
     } catch (e) {
         Notification.exception(e);
-        setUrlStatus('URL rejected.', 'danger');
+        setUrlStatus(widgetStrings.urlrejected, 'danger');
         if (button) { button.disabled = false; }
         return;
     }
 
     sessionField.value = String(session.session_id);
-    setUrlStatus('✓ URL accepted. Save the activity to finalise.', 'success');
+    setUrlStatus('✓ ' + widgetStrings.urlaccepted, 'success');
     if (button) { button.disabled = false; }
 };
 
@@ -379,6 +409,7 @@ const renderInto = async (region) => {
 
 export const init = async (config) => {
     widgetContextId = config.contextId;
+    widgetStrings = config.strings || {};
     const region = document.querySelector(SELECTORS.region);
     if (!region) { return; }
 

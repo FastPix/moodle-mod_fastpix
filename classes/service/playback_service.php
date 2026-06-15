@@ -39,28 +39,26 @@ use mod_fastpix\dto\view_state_processing;
  * attempt logic that anchors session_token storage (D1).
  */
 class playback_service {
-    /**
-     * ESM build of the FastPix Web Player. Loaded via native `import()` from
-     * view.php — bypasses Moodle's RequireJS entirely. The module side-effects
-     * `customElements.define('fastpix-player', ...)` on first import; subsequent
-     * imports are no-ops thanks to the `customElements.get(...) ||` guard at
-     * the bottom of the player IIFE.
-     *
-     * Why ESM, not the IIFE bundle: the player's own hls.js auto-loader uses
-     * a plain `<script>` append, which under Moodle's RequireJS triggers the
-     * UMD `define.amd` branch and never sets `window.Hls`. Pre-loading hls.js
-     * as ESM (HLS_LIB_URL below) and stashing it on `window.Hls` short-circuits
-     * the player's loader. ESM runs outside the AMD context.
-     */
-    const PLAYER_LIB_URL = 'https://cdn.jsdelivr.net/npm/@fastpix/fp-player@1.0.17/dist/player.esm.js';
+    // The FastPix Web Player ESM URL is owned by local_fastpix and served from
+    // there (ADR-017): its build embeds live FastPix API endpoint literals, so it
+    // cannot be vendored under mod/fastpix without tripping A3/PR-1. Consume it
+    // via the documented surface \local_fastpix\service\playback_service::player_lib_url()
+    // (CC1/CC7), wired into view_state_player. The player is loaded with native
+    // import() (outside RequireJS) and side-effect-defines <fastpix-player>;
+    // view.php pre-sets window.Hls from HLS_LIB_URL below so the player's own
+    // CDN hls fallback stays dormant.
 
     /**
-     * HLS.js as ESM. jsdelivr's `+esm` adapter wraps the UMD package as a
-     * native ES module; the default export is the `Hls` class. Native
-     * `import()` bypasses RequireJS, so the UMD-vs-AMD conflict that plagues
-     * the player's built-in hls auto-loader cannot fire here.
+     * HLS.js, vendored locally (Moodle requires all JS served from the site,
+     * not a CDN). This is the upstream self-contained ESM build (dist/hls.mjs,
+     * v1.6.16) saved with a .js extension for static-MIME safety; the default
+     * export is the `Hls` class. Loaded via native `import()` so it bypasses
+     * RequireJS — the UMD-vs-AMD conflict that plagues the player's built-in
+     * hls auto-loader cannot fire here. Root-relative; view_state_player wraps
+     * it in a moodle_url so the wwwroot prefix is applied at render time.
+     * Pinned version is tracked in thirdpartylibs.xml.
      */
-    const HLS_LIB_URL = 'https://cdn.jsdelivr.net/npm/hls.js@1.6.16/+esm';
+    const HLS_LIB_URL = '/mod/fastpix/thirdparty/hls/hls.js';
 
     /** @var self|null Singleton instance. */
     private static $instance = null;

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<libraries>
+  <library>
+    <location>thirdparty/hls</location>
+    <name>hls.js</name>
+    <description>HLS.js — JavaScript HLS client used by the FastPix web player for adaptive playback. Vendored self-contained ESM build (upstream dist/hls.mjs) saved as hls.js and loaded via native import().</description>
+    <version>1.6.16</version>
+    <license>Apache-2.0</license>
+    <licenseversion>2.0</licenseversion>
+    <repository>https://github.com/video-dev/hls.js</repository>
+  </library>
+  <library>
+    <location>thirdparty/resumable-uploads</location>
+    <name>@fastpix/resumable-uploads</name>
+    <description>FastPix resumable chunked upload SDK used by the activity edit form upload widget. Vendored self-contained ESM build (upstream dist/uploads.mjs) saved as uploads.js and loaded via native import().</description>
+    <version>1.0.5</version>
+    <license>MIT</license>
+    <repository>https://www.npmjs.com/package/@fastpix/resumable-uploads</repository>
+  </library>
+</libraries>

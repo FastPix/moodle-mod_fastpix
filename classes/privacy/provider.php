@@ -81,6 +81,20 @@ class provider implements
             'privacy:metadata:fastpix_attempt'
         );
 
+        // External data flow: playing a FastPix Video streams it from the FastPix
+        // video service in the learner's browser. mod_fastpix makes ZERO server-side
+        // calls to FastPix (rule A2) — the signed, per-user playback token is minted
+        // by local_fastpix — but the activity is what causes the browser to contact
+        // FastPix, so the transmission is disclosed here for the privacy registry.
+        $collection->add_external_location_link(
+            'fastpix',
+            [
+                'playbackid' => 'privacy:metadata:fastpix:playbackid',
+                'token'      => 'privacy:metadata:fastpix:token',
+            ],
+            'privacy:metadata:fastpix'
+        );
+
         return $collection;
     }
 

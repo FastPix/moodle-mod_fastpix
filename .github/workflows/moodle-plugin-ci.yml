@@ -24,13 +24,25 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: 'postgres'
+          POSTGRES_HOST_AUTH_METHOD: 'trust'
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd=pg_isready
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     strategy:
       fail-fast: false
       matrix:
         php: ['8.1', '8.2', '8.3']
         moodle-branch: ['MOODLE_405_STABLE']
-        database: ['mariadb']
+        database: ['mariadb', 'pgsql']
 
     steps:
       - name: Check out plugin
@@ -58,6 +70,12 @@ jobs:
           extensions: mbstring, pgsql, mysqli, gd, zip, soap, intl, xmlrpc
           ini-values: max_input_vars=5000
           coverage: pcov
+
+      # Moodle 4.5's Grunt toolchain requires Node 22; needed for the grunt step.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
       - name: Initialise moodle-plugin-ci
         run: |
@@ -89,6 +107,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci codechecker --max-warnings 0
 
+      - name: Moodle PHPDoc checker
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpdoc
+
       - name: Validate plugin
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci validate
@@ -101,9 +123,11 @@ jobs:
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci mustache
 
-      # NOTE: no `grunt` step. mod_fastpix's amd/build/*.min.js are
-      # hand-written AMD wrappers (the dev env lacks grunt amd); they are not
-      # grunt output and `moodle-plugin-ci grunt` would report them as stale.
+      # Rebuilds amd/src -> amd/build and fails if the committed build artifacts
+      # differ. The build/*.min.js files are genuine `grunt amd` output (Node 22).
+      - name: Grunt (rebuild AMD and check for diffs)
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci grunt
 
       - name: PHPUnit
         if: ${{ !cancelled() }}

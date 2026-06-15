@@ -45,6 +45,15 @@ if (!in_array($mode, ['video', 'user'], true)) {
 }
 
 $service = \mod_fastpix\report\watch_report::instance();
+
+// User mode targets a single student. Restrict the target to users enrolled in THIS
+// course — not arbitrary site users resolved by guessing ids (which would leak a
+// fullname via the per-user report header). Validated before any user record is
+// loaded so both the HTML and CSV paths are covered.
+if ($mode === 'user' && !$service->is_user_reportable($context, $userid)) {
+    throw new \moodle_exception('error_user_not_in_course', 'mod_fastpix');
+}
+
 $baseurl = new moodle_url('/mod/fastpix/report.php', ['id' => $cm->id, 'mode' => $mode]);
 if ($mode === 'user') {
     $baseurl->param('userid', $userid);

@@ -229,6 +229,18 @@ class mod_fastpix_mod_form extends moodleform_mod {
             'contextId'         => \context_course::instance($COURSE->id)->id,
             'fieldnameSession'  => 'upload_session_id',
             'cmid'              => $cmid,
+            // Localised status strings (no English literals in JS — M7). Mirrors
+            // the captions_upload init contract below.
+            'strings'           => [
+                'complete'      => get_string('upload_complete', 'mod_fastpix'),
+                'failed'        => get_string('upload_failed', 'mod_fastpix'),
+                'sessionfailed' => get_string('upload_sessionfailed', 'mod_fastpix'),
+                'uploading'     => get_string('upload_in_progress', 'mod_fastpix'),
+                'untitledvideo' => get_string('upload_untitledvideo', 'mod_fastpix'),
+                'urlaccepted'   => get_string('upload_urlaccepted', 'mod_fastpix'),
+                'urlenterfirst' => get_string('upload_urlenterfirst', 'mod_fastpix'),
+                'urlrejected'   => get_string('upload_urlrejected', 'mod_fastpix'),
+            ],
         ]]);
 
         $this->standard_coursemodule_elements();

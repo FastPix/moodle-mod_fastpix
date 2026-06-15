@@ -1,3 +1,26 @@
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * FastPix player AMD entry point.
+ *
+ * @module     mod_fastpix/player
+ * @copyright  2026 FastPix
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 // Player AMD entry point.
 //
 // Owns mounting the <fastpix-player> web component and the self-contained
@@ -34,6 +57,7 @@
 // only a string literal), and the body runs in global scope where dynamic
 // import is permitted. Keep CDN/ESM loads going through esmImport, never a
 // bare literal import().
+// eslint-disable-next-line no-new-func -- Intentional: hides native import() from Babel's AMD transform (see comment above).
 const esmImport = (url) => Function('u', 'return import(u);')(url);
 
 /**
@@ -351,6 +375,14 @@ export const mount = async(wrapperEl, payload) => {
         let seekCount = 0;
         let hasCompleted = !!payload.has_completed;
         let endedFired = false;
+        /**
+         * Merge a watched [a, b] range into the sorted, non-overlapping set.
+         *
+         * @param {Array<Array<number>>} arr Existing intervals.
+         * @param {Number} a Range start (seconds).
+         * @param {Number} b Range end (seconds).
+         * @returns {Array<Array<number>>} The merged interval set.
+         */
         function addInterval(arr, a, b) {
             if (b <= a) {
                 return arr;
@@ -368,6 +400,11 @@ export const mount = async(wrapperEl, payload) => {
             }
             return out;
         }
+        /**
+         * Sum the watched seconds across the current interval set.
+         *
+         * @returns {Number} Total unique seconds watched.
+         */
         function coverageSeconds() {
             let s = 0;
             for (const w of watched) {
@@ -378,6 +415,11 @@ export const mount = async(wrapperEl, payload) => {
         // Reveal the "Completed" indicator (add .is-complete). Sticky — never
         // removed once set (mirrors the server has_completed-wins rule). The
         // indicator is the only watch-status UI; there is no other state.
+        /**
+         * Reveal the sticky "Completed" indicator (idempotent).
+         *
+         * @returns {void}
+         */
         function showCompleted() {
             if (!indicator || !completionEnabled) {
                 return;
@@ -401,6 +443,11 @@ export const mount = async(wrapperEl, payload) => {
         // reveal the sticky completed indicator and flush the 0→1 transition so
         // completion + grade fire without waiting for the 10s heartbeat. Below
         // threshold the indicator stays hidden.
+        /**
+         * Recompute coverage and repaint the progress strip / completion state.
+         *
+         * @returns {void}
+         */
         function repaint() {
             const cov = duration > 0 ? Math.min(100, (coverageSeconds() / duration) * 100) : 0;
             const crossed = (cov >= threshold) || hasCompleted;
@@ -479,6 +526,11 @@ export const mount = async(wrapperEl, payload) => {
             repaint();
             persist();
         });
+        /**
+         * Build the record_view_progress web-service arguments from local state.
+         *
+         * @returns {Object} The web-service args.
+         */
         function buildArgs() {
             return {
                 cmid: cmid,
@@ -492,6 +544,12 @@ export const mount = async(wrapperEl, payload) => {
                 ended_fired: endedFired
             };
         }
+        /**
+         * Send the current watch state to the server.
+         *
+         * @param {Boolean} [useBeacon] Use navigator.sendBeacon (tab close/hide).
+         * @returns {void}
+         */
         function persist(useBeacon) {
             if (typeof M === 'undefined' || !M.cfg) {
                 return;

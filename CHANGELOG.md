@@ -4,7 +4,7 @@ All notable changes to `mod_fastpix` are documented here. Format follows [Keep a
 
 ---
 
-## [v1.1.0] — 2026-06-10
+## [v1.1.0] — 2026-06-15
 
 Feature release: media-protection + caption settings on the activity form,
 teacher watch analytics, and asset reference counting — plus a course-context
@@ -33,9 +33,15 @@ upload fix that restores teacher uploads.
 **Upload context (mod_form.php + amd/src/upload_widget.js)**
 - The upload widget now receives the **course** context id instead of the system context, and forwards `contextid` to `local_fastpix`'s `create_upload_session` / `create_url_pull_session`. Upload permission (`mod/fastpix:uploadmedia`) is enforced at the course context, and uploads are tagged to their course.
 - `create_upload_session` arguments updated to the new contract (`contextid`, `title`, `accesspolicy`, `captionsmode`, `languagecode`) and its no-underscore return fields (`uploadurl` / `uploadid`).
-- `local_fastpix` dependency pinned to `2026061009`; `release` is now `1.1.0`.
+- `local_fastpix` dependency pinned to `2026061500`; `release` is now `1.1.0`.
+
+**JavaScript served locally — no CDN (Moodle Plugins Directory requirement)**
+- Player libraries are no longer loaded from a public CDN. `hls.js` (1.6.16) and the `@fastpix/resumable-uploads` SDK (1.0.5) are now vendored under `thirdparty/` and served from the Moodle site; both are declared in the new `thirdpartylibs.xml`.
+- The FastPix web player is served from `local_fastpix` (its build embeds FastPix API endpoint literals, so it cannot live here per architecture rule A3). `mod_fastpix` consumes its URL via `\local_fastpix\service\playback_service::player_lib_url()` — hence the dependency bump to `2026061500`.
 
 ### Fixed
+- **Per-user watch report could resolve any site user by id.** `report.php` now restricts the per-user report target to users enrolled in the course (`mod/fastpix:viewallattempts` holders only), closing a fullname-disclosure path on both the HTML and CSV outputs.
+- **Course backup dropped three media settings.** `access_policy`, `captions_mode`, and `language_code` were not captured by the activity backup and silently reset to defaults on restore/duplicate; they are now included.
 - **Teachers could not upload from the activity form.** Upload permission was checked at the *system* context — where editing teachers hold no role — instead of the course context, so every upload was denied. It is now checked at the course context; students enrolled in the course still cannot upload or embed but can view.
 - **"Invalid parameter value detected" on upload.** The widget was sending stale arguments (`filename`, `size`) to `create_upload_session`; it now sends the required `title` / `accesspolicy` / `captionsmode` / `languagecode`, and reads the `uploadurl` / `uploadid` return fields.
 - **Engagement chart auto-scaled** instead of showing a fixed 0–100 range (Moodle's chart API passes the bound as Chart.js v2 `ticks.min/max`, which the bundled Chart.js v4 ignores). Replaced with an inline SVG locked to 0–100.
@@ -153,4 +159,5 @@ The complete per-phase development log lives in `.claude/` alongside the archite
 
 ---
 
-[v1.0.0]: https://github.com/tharunbudidha27/mod-plugin/releases/tag/v1.0.0
+[v1.1.0]: https://github.com/FastPix/moodle-mod_fastpix/releases/tag/v1.1.0
+[v1.0.0]: https://github.com/FastPix/moodle-mod_fastpix/releases/tag/v1.0.0
