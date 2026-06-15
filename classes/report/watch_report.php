@@ -59,6 +59,22 @@ class watch_report {
     }
 
     /**
+     * Whether a per-user watch report may be shown for the given target user.
+     *
+     * A holder of mod/fastpix:viewallattempts may only inspect users enrolled in
+     * the report's course — not resolve arbitrary site users by guessing ids
+     * (which would leak fullname via the per-user report header). The capability
+     * check itself stays in report.php; this gates the target.
+     *
+     * @param \context $context The activity (module) context the report runs in.
+     * @param int $userid The requested target user id.
+     * @return bool True when the user is a valid, enrolled report target.
+     */
+    public function is_user_reportable(\context $context, int $userid): bool {
+        return $userid > 0 && is_enrolled($context, $userid);
+    }
+
+    /**
      * Sum the watched seconds in a stored intervals blob.
      *
      * @param string|null $intervalsjson JSON [[start,end],...] or '' / null.

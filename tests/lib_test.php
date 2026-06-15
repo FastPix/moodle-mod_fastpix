@@ -298,4 +298,23 @@ final class lib_test extends \advanced_testcase {
         $cm2 = (object)['customdata' => ['customcompletionrules' => []]];
         $this->assertSame([], fastpix_get_completion_active_rule_descriptions($cm2));
     }
+
+    /**
+     * The upload-widget status strings (localised in init() per M7 — no English
+     * literals in JS) must all resolve to real lang strings, not [[placeholders]].
+     * Guards the mod_form.php upload_widget init 'strings' contract.
+     */
+    public function test_upload_widget_status_strings_resolve(): void {
+        $keys = [
+            'upload_complete', 'upload_failed', 'upload_sessionfailed', 'upload_in_progress',
+            'upload_untitledvideo', 'upload_urlaccepted', 'upload_urlenterfirst', 'upload_urlrejected',
+        ];
+        foreach ($keys as $key) {
+            $this->assertTrue(
+                get_string_manager()->string_exists($key, 'mod_fastpix'),
+                "Missing lang string: {$key}"
+            );
+            $this->assertStringNotContainsString('[[', get_string($key, 'mod_fastpix'));
+        }
+    }
 }

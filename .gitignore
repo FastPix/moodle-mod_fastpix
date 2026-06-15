@@ -67,3 +67,8 @@ phpunit.result.cache
 
 # --- Claude Code workspace ---------------------------------------------------
 .claude/
+
+# --- Dev-only artifacts (must not ship in the release package) --------------
+.playwright-mcp/
+STATUS.md
+sonar-project.properties

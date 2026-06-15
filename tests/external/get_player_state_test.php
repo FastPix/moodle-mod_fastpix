@@ -186,6 +186,7 @@ final class get_player_state_test extends \advanced_testcase {
     // 2. Ready asset → full player payload (also covers to_player_payload)
 
     public function test_ready_asset_returns_ready_true_with_player_payload(): void {
+        global $CFG;
         $this->resetAfterTest();
 
         $asset = $this->insert_asset([
@@ -217,10 +218,22 @@ final class get_player_state_test extends \advanced_testcase {
         $this->assertSame('[]', $result['initial_intervals_json']);
         $this->assertSame(0, $result['initial_coverage_percent']);
 
-        // Library URLs must equal the playback_service consts (CC9 / M1 player
-        // bootstrap) — these are what view.mustache imports.
-        $this->assertSame(playback_service::PLAYER_LIB_URL, $result['player_lib_url']);
-        $this->assertSame(playback_service::HLS_LIB_URL, $result['hls_lib_url']);
+        // Library URLs are what view.mustache / player.js import (CC9 / M1 player
+        // bootstrap). Both are now served from the Moodle site, never a CDN: the
+        // player comes from local_fastpix (ADR-017), hls.js is vendored under
+        // mod_fastpix and resolved to an absolute wwwroot URL.
+        $this->assertSame(
+            \local_fastpix\service\playback_service::player_lib_url(),
+            $result['player_lib_url']
+        );
+        $this->assertSame(
+            (new \moodle_url(playback_service::HLS_LIB_URL))->out(false),
+            $result['hls_lib_url']
+        );
+        // Regression lock — neither library may load from a CDN (Moodle policy).
+        $this->assertStringContainsString($CFG->wwwroot, $result['player_lib_url']);
+        $this->assertStringNotContainsString('cdn.jsdelivr.net', $result['player_lib_url']);
+        $this->assertStringNotContainsString('cdn.jsdelivr.net', $result['hls_lib_url']);
     }
 
     public function test_ready_response_validates_against_execute_returns(): void {

@@ -83,6 +83,10 @@ final class backup_restore_test extends advanced_testcase {
         ]);
         // The asset reference is the load-bearing field for both scenarios.
         $DB->set_field('fastpix', 'fastpix_asset_id', $assetid, ['id' => $activity->id]);
+        // Non-default media settings so the round-trip catches a dropped column.
+        $DB->set_field('fastpix', 'access_policy', 'public', ['id' => $activity->id]);
+        $DB->set_field('fastpix', 'captions_mode', 'auto', ['id' => $activity->id]);
+        $DB->set_field('fastpix', 'language_code', 'es', ['id' => $activity->id]);
         $activity = $DB->get_record('fastpix', ['id' => $activity->id], '*', MUST_EXIST);
 
         $attempts = [];
@@ -193,6 +197,9 @@ final class backup_restore_test extends advanced_testcase {
         $this->assertEquals($activity->completion_watch_percent, $restored->completion_watch_percent);
         $this->assertEquals($activity->no_skip_required, $restored->no_skip_required);
         $this->assertEquals($activity->default_show_captions, $restored->default_show_captions);
+        $this->assertEquals($activity->access_policy, $restored->access_policy);
+        $this->assertEquals($activity->captions_mode, $restored->captions_mode);
+        $this->assertEquals($activity->language_code, $restored->language_code);
         $this->assertEquals($assetid, $restored->fastpix_asset_id);
 
         // All attempt rows survive and are re-parented to the new activity.

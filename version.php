@@ -25,16 +25,17 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'mod_fastpix';
-$plugin->version      = 2026061010;
+$plugin->version      = 2026061502;
 $plugin->requires     = 2024100100;
 $plugin->maturity     = MATURITY_STABLE;
 $plugin->release      = '1.1.0';
 $plugin->dependencies = [
-    // Pin to the local_fastpix 1.1.0 build (>= 2026061010). The new code uses
+    // Pin to the local_fastpix 1.1.0 build (>= 2026061500). The new code uses
     // surfaces introduced there: asset_service::add_reference / release_reference
-    // (asset reference counting) and create_upload_session's course-context +
+    // (asset reference counting); create_upload_session's course-context +
     // title / accesspolicy / captionsmode / languagecode parameter contract
-    // (with the uploadurl / uploadid return shape). An older local_fastpix lacks
-    // these, so it must not be installed underneath.
-    'local_fastpix' => 2026061010,
+    // (with the uploadurl / uploadid return shape); and playback_service::player_lib_url()
+    // (ADR-017 — the locally-served FastPix player URL). An older local_fastpix
+    // lacks these, so it must not be installed underneath.
+    'local_fastpix' => 2026061500,
 ];

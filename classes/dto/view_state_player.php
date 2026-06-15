@@ -232,8 +232,12 @@ class view_state_player {
             'expires_at_ts'            => $this->expiresatts,
             'initial_coverage_percent' => $this->initialcoveragepercent,
             'intro_html'               => $this->introhtml,
-            'player_lib_url'           => \mod_fastpix\service\playback_service::PLAYER_LIB_URL,
-            'hls_lib_url'              => \mod_fastpix\service\playback_service::HLS_LIB_URL,
+            // Player ESM is served by local_fastpix (ADR-017); consume the documented
+            // surface (CC1/CC7) rather than a local CDN literal. Already absolute.
+            'player_lib_url'           => \local_fastpix\service\playback_service::player_lib_url(),
+            // HLS_LIB_URL is a root-relative path to the vendored lib; resolve to an
+            // absolute URL (wwwroot-prefixed) for the native import() in player.js.
+            'hls_lib_url'              => (new \moodle_url(\mod_fastpix\service\playback_service::HLS_LIB_URL))->out(false),
         ]);
     }
 }

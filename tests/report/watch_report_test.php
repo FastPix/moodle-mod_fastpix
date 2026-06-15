@@ -161,4 +161,25 @@ final class watch_report_test extends \advanced_testcase {
         $this->assertEmpty($report->rows);
         $this->assertEmpty($report->heatmap->values);
     }
+
+    /**
+     * The per-user report target is gated to users enrolled in the course, so a
+     * teacher cannot resolve an arbitrary site user (and leak their fullname) by
+     * guessing ids on report.php.
+     */
+    public function test_is_user_reportable_requires_course_enrolment(): void {
+        [$course, $activity] = $this->setup_video(100);
+        $cm = get_coursemodule_from_instance('fastpix', $activity->id, $course->id, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+
+        $enrolled = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($enrolled->id, $course->id, 'student');
+        $outsider = $this->getDataGenerator()->create_user(); // Exists site-wide, not in this course.
+
+        $svc = watch_report::instance();
+        $this->assertTrue($svc->is_user_reportable($context, (int)$enrolled->id));
+        $this->assertFalse($svc->is_user_reportable($context, (int)$outsider->id));
+        $this->assertFalse($svc->is_user_reportable($context, 0));
+        $this->assertFalse($svc->is_user_reportable($context, -1));
+    }
 }

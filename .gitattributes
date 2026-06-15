@@ -1,0 +1,10 @@
+# Files excluded from the released plugin archive (git archive / export).
+# Dev-only tooling, AI workspace, and CI/quality configs that have no place
+# in the distributable ZIP installed onto a Moodle site.
+.claude/                   export-ignore
+.playwright-mcp/           export-ignore
+.github/                   export-ignore
+STATUS.md                  export-ignore
+sonar-project.properties   export-ignore
+.gitignore                 export-ignore
+.gitattributes             export-ignore
