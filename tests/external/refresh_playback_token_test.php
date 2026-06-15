@@ -27,7 +27,6 @@ namespace mod_fastpix\external;
 
 use core_external\external_api;
 use mod_fastpix\external\refresh_playback_token;
-use mod_fastpix\service\session_token_service;
 
 /**
  * Tests for \mod_fastpix\external\refresh_playback_token (CC6 / S3).
@@ -50,28 +49,7 @@ final class refresh_playback_token_test extends \advanced_testcase {
      * @return \stdClass The inserted row (with ->id).
      */
     private function insert_asset(array $overrides = []): \stdClass {
-        global $DB;
-        $now = time();
-        $row = (object)array_merge([
-            'fastpix_id'             => 'media_' . uniqid('', true),
-            'playback_id'            => 'pb_' . uniqid('', true),
-            'owner_userid'           => 0,
-            'title'                  => 'Phpunit asset',
-            'duration'               => 120,
-            'status'                 => 'ready',
-            'access_policy'          => 'public',
-            'drm_required'           => 0,
-            'no_skip_required'       => 0,
-            'has_captions'           => 0,
-            'last_event_id'          => null,
-            'last_event_at'          => null,
-            'deleted_at'             => null,
-            'gdpr_delete_pending_at' => null,
-            'timecreated'            => $now,
-            'timemodified'           => $now,
-        ], $overrides);
-        $row->id = $DB->insert_record('local_fastpix_asset', $row);
-        return $row;
+        return $this->getDataGenerator()->get_plugin_generator('mod_fastpix')->create_asset($overrides);
     }
 
     /**
@@ -104,24 +82,8 @@ final class refresh_playback_token_test extends \advanced_testcase {
      * @return \stdClass The attempt row (token in ->session_token).
      */
     private function insert_attempt(int $userid, int $activityid, int $assetid, array $overrides = []): \stdClass {
-        global $DB;
-        $now = time();
-        $row = (object)array_merge([
-            'userid'            => $userid,
-            'activity_id'       => $activityid,
-            'asset_id'          => $assetid,
-            'session_token'     => session_token_service::instance()->issue($userid, $activityid, $now),
-            'session_start_ts'  => $now,
-            'last_callback_ts'  => null,
-            'seek_count'        => 0,
-            'watched_intervals' => '',
-            'current_position'  => 0,
-            'has_completed'     => 0,
-            'fraud_count'       => 0,
-            'completion_state'  => 'in_progress',
-        ], $overrides);
-        $row->id = $DB->insert_record('fastpix_attempt', $row);
-        return $row;
+        return $this->getDataGenerator()->get_plugin_generator('mod_fastpix')
+            ->create_attempt($userid, $activityid, $assetid, $overrides);
     }
 
     public function test_valid_session_returns_fresh_token(): void {

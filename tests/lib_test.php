@@ -125,6 +125,11 @@ final class lib_test extends \advanced_testcase {
      * Insert a fastpix_attempt row for the (userid, activity) pair with
      * has_completed pre-set. Useful for exercising fastpix_update_grades
      * without going through the watch tracker.
+     *
+     * @param int $userid The user id.
+     * @param int $activityid The fastpix activity id.
+     * @param int $hascompleted The has_completed flag value.
+     * @return int The inserted attempt row id.
      */
     private function seed_completed_attempt(int $userid, int $activityid, int $hascompleted = 1): int {
         global $DB;

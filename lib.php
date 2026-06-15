@@ -286,6 +286,9 @@ function fastpix_update_grades($activity = null, $userid = 0, $nullifnone = true
  * Surface custom-completion rules + threshold value on cm_info->customdata
  * so the completion-rules UI (and our custom_completion class) can read the
  * configured threshold for each activity. Pattern matches mod_quiz / mod_forum.
+ *
+ * @param \stdClass $coursemodule The course module database record.
+ * @return \cached_cm_info|false The populated cm info, or false if the instance is missing.
  * @package mod_fastpix
  */
 function fastpix_get_coursemodule_info($coursemodule) {
@@ -321,6 +324,9 @@ function fastpix_get_coursemodule_info($coursemodule) {
  * Localized descriptions for the activity-completion-rules UI (CG3).
  * Reads the threshold stamped onto cm->customdata by
  * fastpix_get_coursemodule_info().
+ *
+ * @param \cm_info|\stdClass $cm The course module.
+ * @return array Localised completion-rule description strings.
  * @package mod_fastpix
  */
 function fastpix_get_completion_active_rule_descriptions($cm) {

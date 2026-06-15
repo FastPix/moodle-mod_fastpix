@@ -55,6 +55,11 @@ class session_token_service {
 
     /**
      * Issue a fresh session token.
+     *
+     * @param int $userid The viewing user id.
+     * @param int $activityid The fastpix activity id.
+     * @param int $sessionstartts Unix timestamp marking the session start.
+     * @return string The 64-char hex HMAC-SHA256 token.
      */
     public function issue(int $userid, int $activityid, int $sessionstartts): string {
         $message = $userid . '|' . $activityid . '|' . $sessionstartts;
@@ -64,6 +69,11 @@ class session_token_service {
     /**
      * Verify a provided token against the stored row token. Constant-time.
      * Also checks the 4h TTL.
+     *
+     * @param string $provided The token supplied by the client.
+     * @param string $expected The token stored on the attempt row.
+     * @param int $sessionstartts The attempt's session_start_ts (for the TTL check).
+     * @return bool True when the token matches and is within TTL.
      */
     public function verify(string $provided, string $expected, int $sessionstartts): bool {
         return $this->is_within_ttl($sessionstartts)
@@ -74,6 +84,9 @@ class session_token_service {
     /**
      * True if the session has not exceeded TTL. Used by callers that need to
      * decide whether to reuse an existing attempt row.
+     *
+     * @param int $sessionstartts The attempt's session_start_ts.
+     * @return bool True when the session is still within the TTL window.
      */
     public function is_within_ttl(int $sessionstartts): bool {
         return $sessionstartts > 0 && (time() - $sessionstartts) <= self::TTL_SECONDS;
@@ -88,6 +101,10 @@ class session_token_service {
      *   - attempt finalised (≠ in_progress)      → error_session_finalised
      *   - token mismatch / expired               → error_session_invalid
      *
+     * @param int $userid The viewing user id.
+     * @param int $activityid The fastpix activity id.
+     * @param string $providedtoken The session token supplied by the client.
+     * @return \stdClass The verified, in-progress attempt row.
      * @throws \moodle_exception with one of the three lang keys above.
      */
     public function resolve_active_attempt(int $userid, int $activityid, string $providedtoken): \stdClass {

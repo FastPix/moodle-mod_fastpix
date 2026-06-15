@@ -53,6 +53,7 @@ class view_state_player {
      * @param bool $hascompleted Whether the attempt has already completed.
      * @param string $drmtoken Separate DRM license JWT; empty for non-DRM assets.
      * @param string $introhtml Formatted activity intro HTML.
+     * @param bool $completionenabled Whether the watched-% completion condition is enabled.
      */
     public function __construct(
         /** @var string The FastPix playback id. */
@@ -130,6 +131,9 @@ class view_state_player {
      * Format a whole-second count as mm:ss (e.g. 95 → "1:35"). Minutes are not
      * zero-padded; seconds always are. Kept in PHP so the card renders the same
      * on first paint and on the client swap (no JS formatting divergence).
+     *
+     * @param int $seconds Whole-second count.
+     * @return string The mm:ss formatted string.
      */
     public static function format_mmss(int $seconds): string {
         $seconds = max(0, $seconds);
@@ -141,6 +145,9 @@ class view_state_player {
     /**
      * Sum unique watched seconds from the serialised intervals JSON.
      * Mirrors playback_service::compute_initial_coverage_percent's numerator.
+     *
+     * @param string|null $intervalsjson The watched-intervals JSON, or null.
+     * @return int Total unique watched seconds.
      */
     public static function watched_seconds_from_intervals(?string $intervalsjson): int {
         $intervals = json_decode($intervalsjson ?: '[]', true) ?: [];

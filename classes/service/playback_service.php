@@ -88,6 +88,9 @@ class playback_service {
      *
      * Centralised here so mod_form::validation can call it without doing
      * its own $DB read (A6 — services own business logic).
+     *
+     * @param int $activityid The fastpix activity id.
+     * @return bool True when at least one real watch attempt exists.
      */
     public function has_attempts_for(int $activityid): bool {
         global $DB;
@@ -127,6 +130,11 @@ class playback_service {
      * Returns view_state_player when the asset is ready and a JWT minted;
      * view_state_processing when the asset is in flight; view_state_error
      * with reason 'videounavailable' otherwise (ADR-010).
+     *
+     * @param \stdClass $activity The fastpix activity row.
+     * @param int $userid The viewing user id.
+     * @param \cm_info $cm The course module.
+     * @return object One of the view_state_* DTOs.
      */
     public function resolve_for_view(\stdClass $activity, int $userid, \cm_info $cm): object {
         global $CFG;
@@ -400,6 +408,11 @@ class playback_service {
      * and reset session_start_ts. Phase D mutates watched_intervals,
      * current_position, has_completed, seek_count, and fraud_count on this
      * same row; session reset preserves progress (only session_* is rotated).
+     *
+     * @param \stdClass $activity The fastpix activity row.
+     * @param int $userid The viewing user id.
+     * @param \stdClass $asset The resolved local_fastpix asset.
+     * @return \stdClass The attempt row (id=0 for teacher previews).
      */
     public function get_or_create_attempt(\stdClass $activity, int $userid, \stdClass $asset): \stdClass {
         global $DB;

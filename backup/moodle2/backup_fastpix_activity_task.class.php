@@ -59,6 +59,9 @@ class backup_fastpix_activity_task extends backup_activity_task {
      * Encode any course-module-internal URLs inside the activity intro so
      * `restore_decode_processor` can rewrite them on restore. Pattern matches
      * mod_url / mod_page; we only own /mod/fastpix/view.php URLs.
+     *
+     * @param string $content The content to scan for internal links.
+     * @return string The content with internal links encoded for restore.
      */
     public static function encode_content_links($content) {
         global $CFG;

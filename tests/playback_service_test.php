@@ -35,7 +35,7 @@ use mod_fastpix\dto\view_state_player;
 use mod_fastpix\dto\view_state_processing;
 use mod_fastpix\service\playback_service;
 /**
- * Tests for the class(es) listed in @covers.
+ * Tests for the listed class.
  *
  * @package    mod_fastpix
  * @category   test

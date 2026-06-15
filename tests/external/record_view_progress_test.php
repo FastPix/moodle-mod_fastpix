@@ -46,7 +46,10 @@ final class record_view_progress_test extends \advanced_testcase {
      * + a real local_fastpix_asset row whose id matches attempt.asset_id.
      * setUser($student) so $USER inside execute() resolves correctly.
      *
-     * Returns: stdClass with course, activity, student, attempt, asset, sessiontoken.
+     * @param int $duration The asset duration in seconds.
+     * @param string|null $sessiontoken An explicit session token, or null to mint one.
+     * @param string $completionstate The attempt completion_state to seed.
+     * @return \stdClass course, activity, student, attempt, asset, sessiontoken.
      */
     private function setup_fixture(
         int $duration = 100,

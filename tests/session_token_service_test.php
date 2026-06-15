@@ -30,7 +30,7 @@ namespace mod_fastpix;
 
 use mod_fastpix\service\session_token_service;
 /**
- * Tests for the class(es) listed in @covers.
+ * Tests for the listed class.
  *
  * @package    mod_fastpix
  * @category   test
@@ -113,25 +113,8 @@ final class session_token_service_test extends \advanced_testcase {
      * @return \stdClass The inserted attempt row.
      */
     private function insert_attempt(int $userid, int $activityid, array $overrides = []): \stdClass {
-        global $DB;
-        $now = time();
-        $svc = session_token_service::instance();
-        $row = (object)array_merge([
-            'userid'            => $userid,
-            'activity_id'       => $activityid,
-            'asset_id'          => 1,
-            'session_token'     => $svc->issue($userid, $activityid, $now),
-            'session_start_ts'  => $now,
-            'last_callback_ts'  => null,
-            'seek_count'        => 0,
-            'watched_intervals' => '',
-            'current_position'  => 0,
-            'has_completed'     => 0,
-            'fraud_count'       => 0,
-            'completion_state'  => 'in_progress',
-        ], $overrides);
-        $row->id = $DB->insert_record('fastpix_attempt', $row);
-        return $row;
+        return $this->getDataGenerator()->get_plugin_generator('mod_fastpix')
+            ->create_attempt($userid, $activityid, 1, $overrides);
     }
 
     public function test_resolve_active_attempt_returns_row_on_valid_token(): void {

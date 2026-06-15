@@ -33,7 +33,7 @@ namespace mod_fastpix;
 
 use mod_fastpix\service\watch_tracker_service;
 /**
- * Tests for the class(es) listed in @covers.
+ * Tests for the listed class.
  *
  * @package    mod_fastpix
  * @category   test
@@ -44,6 +44,11 @@ final class watch_tracker_service_test extends \advanced_testcase {
      * Build a clean fixture for tests that exercise record_progress() through
      * its full DB-write path. Returns:
      *   [activity, attempt, asset, context, studentid]
+     *
+     * @param int $duration The asset duration in seconds.
+     * @param int $threshold The completion watch percentage.
+     * @param int $noskip Whether seeking is disabled (0/1).
+     * @return array [activity, attempt, asset, context, studentid].
      */
     private function setup_fixture(int $duration = 100, int $threshold = 90, int $noskip = 0): array {
         global $DB;
