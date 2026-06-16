@@ -8,6 +8,12 @@ All notable changes to `mod_fastpix` are documented here. Format follows [Keep a
 
 ### Fixed
 
+- **Failed media no longer shows "Preparing" forever.** The pre-player gate
+  treated every non-`ready` asset status as "processing", so a transcode that
+  errored span on the "Preparing your video" card indefinitely. A terminal
+  `errored`/`failed` status now renders the error state ("This video failed to
+  upload…") on both the initial view and the in-place processing→error swap;
+  genuinely in-progress media still shows "Preparing".
 - **URL-pulled videos now honour the activity's Media settings.** The URL-pull
   path sent only the source URL + context, so title, access policy, and captions
   fell back to `local_fastpix`'s defaults (a Private/DRM choice was ignored).

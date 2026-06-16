@@ -120,6 +120,7 @@ class renderer extends \plugin_renderer_base {
             'is_videounavailable' => $s->reasonkey === 'videounavailable',
             'is_drm_unsupported'  => $s->reasonkey === 'drm_unsupported',
             'is_capability_lost'  => $s->reasonkey === 'capability_lost',
+            'is_upload_failed'    => $s->reasonkey === 'upload_failed',
         ]);
     }
 

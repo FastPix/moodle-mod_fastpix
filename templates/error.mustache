@@ -24,12 +24,14 @@
       * is_videounavailable  bool
       * is_drm_unsupported   bool
       * is_capability_lost   bool
+      * is_upload_failed      bool
 
     Example context (json):
     {
         "is_videounavailable": true,
         "is_drm_unsupported": false,
         "is_capability_lost": false,
+        "is_upload_failed": false,
         "activity_name": "Welcome video"
     }
 }}
@@ -37,4 +39,5 @@
     {{#is_videounavailable}}{{#str}}error_videounavailable, mod_fastpix{{/str}}{{/is_videounavailable}}
     {{#is_drm_unsupported}}{{#str}}error_drm_unsupported, mod_fastpix{{/str}}{{/is_drm_unsupported}}
     {{#is_capability_lost}}{{#str}}error_capability_lost, mod_fastpix{{/str}}{{/is_capability_lost}}
+    {{#is_upload_failed}}{{#str}}error_upload_failed, mod_fastpix{{/str}}{{/is_upload_failed}}
 </div>

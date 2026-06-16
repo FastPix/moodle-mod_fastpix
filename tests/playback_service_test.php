@@ -99,6 +99,75 @@ final class playback_service_test extends \advanced_testcase {
         $this->assertSame('videounavailable', $state->reasonkey);
     }
 
+    /**
+     * A terminally failed asset (status=errored) must surface the error state,
+     * not spin on "Preparing".
+     */
+    public function test_resolve_for_view_returns_error_when_asset_failed(): void {
+        $this->resetAfterTest();
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course();
+        $asset = $this->getDataGenerator()->get_plugin_generator('mod_fastpix')
+            ->create_asset(['status' => 'errored']);
+        $activity = (object)[
+            'course'             => $course->id,
+            'name'               => 'failed',
+            'intro'              => '',
+            'introformat'        => FORMAT_HTML,
+            'upload_session_id'  => null,
+            'fastpix_asset_id'   => (int)$asset->id,
+            'completion_watch_percent' => 90,
+            'no_skip_required'   => 0,
+            'default_show_captions' => 0,
+            'grademax'           => 100,
+            'timecreated'        => time(),
+            'timemodified'       => time(),
+        ];
+        $activity->id = $DB->insert_record('fastpix', $activity);
+
+        $cm = $this->getDataGenerator()->create_module('fastpix', ['course' => $course->id, 'name' => 'cmf']);
+        $cminfo = \cm_info::create(get_coursemodule_from_id('fastpix', $cm->cmid));
+
+        $state = playback_service::instance()->resolve_for_view($activity, 2, $cminfo);
+        $this->assertInstanceOf(view_state_error::class, $state);
+        $this->assertSame('upload_failed', $state->reasonkey);
+    }
+
+    /**
+     * A non-terminal, not-yet-ready asset (e.g. status=preparing) still shows
+     * "Preparing" — the failed-status routing must not catch it.
+     */
+    public function test_resolve_for_view_returns_processing_when_asset_not_ready(): void {
+        $this->resetAfterTest();
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course();
+        $asset = $this->getDataGenerator()->get_plugin_generator('mod_fastpix')
+            ->create_asset(['status' => 'preparing']);
+        $activity = (object)[
+            'course'             => $course->id,
+            'name'               => 'preparing',
+            'intro'              => '',
+            'introformat'        => FORMAT_HTML,
+            'upload_session_id'  => null,
+            'fastpix_asset_id'   => (int)$asset->id,
+            'completion_watch_percent' => 90,
+            'no_skip_required'   => 0,
+            'default_show_captions' => 0,
+            'grademax'           => 100,
+            'timecreated'        => time(),
+            'timemodified'       => time(),
+        ];
+        $activity->id = $DB->insert_record('fastpix', $activity);
+
+        $cm = $this->getDataGenerator()->create_module('fastpix', ['course' => $course->id, 'name' => 'cmp']);
+        $cminfo = \cm_info::create(get_coursemodule_from_id('fastpix', $cm->cmid));
+
+        $state = playback_service::instance()->resolve_for_view($activity, 2, $cminfo);
+        $this->assertInstanceOf(view_state_processing::class, $state);
+    }
+
     public function test_has_attempts_for_returns_false_when_only_preview_rows(): void {
         // C6 contract — preview rows (empty watched_intervals) must NOT count
         // as "real" attempts that block asset swap. Post-Phase-D-Slice-A:

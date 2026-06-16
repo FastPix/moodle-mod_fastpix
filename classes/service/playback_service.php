@@ -211,6 +211,12 @@ class playback_service {
             return $this->unavailable_state($activity);
         }
 
+        // A terminally-failed transcode must show "Failed to upload", not spin on
+        // "Preparing" forever. Any OTHER non-ready status is still in flight.
+        if (in_array($asset->status, ['errored', 'failed'], true)) {
+            return new view_state_error('upload_failed', (string)$activity->name);
+        }
+
         return $asset->status !== 'ready' ? $this->processing_state($activity, $cm) : null;
     }
 

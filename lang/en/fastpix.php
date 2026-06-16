@@ -71,6 +71,7 @@ $string['error_session_finalised']   = 'Your watch session for this activity has
 $string['error_session_invalid']     = 'The watch session token is invalid or expired.';
 $string['error_session_no_attempt']  = 'No active watch session was found for this activity.';
 $string['error_thresholdrange']   = 'Watched percentage must be between 1 and 100.';
+$string['error_upload_failed']    = 'This video failed to upload. Remove it and try again.';
 $string['error_uploadrequired']   = 'You must upload a video before saving.';
 $string['error_urlnotvalidated']  = 'Click the Upload button to submit the URL before saving.';
 $string['error_urlrequired']      = 'A source URL is required for URL pull.';

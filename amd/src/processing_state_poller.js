@@ -126,6 +126,7 @@ const swapToError = (errorKey) => {
         is_videounavailable: errorKey === 'videounavailable',
         is_drm_unsupported: errorKey === 'drm_unsupported',
         is_capability_lost: errorKey === 'capability_lost',
+        is_upload_failed: errorKey === 'upload_failed',
     };
     Templates.renderForPromise('mod_fastpix/error', context).then(({html, js}) => {
         Templates.replaceNodeContents(node, html, js);

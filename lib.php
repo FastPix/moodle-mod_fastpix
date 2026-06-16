@@ -312,11 +312,18 @@ function fastpix_get_coursemodule_info($coursemodule) {
         $info->customdata['customcompletionrules']['completionwatchedpercent'] =
             (int)$activity->completion_watch_percent;
     }
-    // Force Moodle to render the brand-coloured icon.svg as an <img> rather
-    // than applying the monologo→mask-image→purpose-tint pipeline. Without
-    // this, Moodle 4.x recolours the icon to the assessment-purpose tint
-    // (pink/red in Boost) and the brand greens are lost.
-    $info->iconurl = new \moodle_url('/mod/fastpix/pix/icon.svg');
+    // Render the brand-coloured icon.svg via the standard icon + iconcomponent
+    // fields, which Moodle resolves to a URL at page-render time. Do NOT set
+    // $info->iconurl: an iconurl is stored in the course modinfo cache as an
+    // ABSOLUTE url built from $CFG->wwwroot at cache-build time, so if the cache
+    // is ever rebuilt while wwwroot resolves to an internal address (e.g. behind
+    // a reverse proxy) every activity shows a broken icon until caches are
+    // purged. icon + iconcomponent are cached as relative identifiers and
+    // resolved per request, so the domain is never frozen. The icon branch of
+    // cm_info::get_icon_url() does not apply the monologo→purpose-tint filter,
+    // so the brand greens are preserved without needing iconurl.
+    $info->icon = 'icon';
+    $info->iconcomponent = 'mod_fastpix';
     return $info;
 }
 
