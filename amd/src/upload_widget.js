@@ -66,6 +66,14 @@ import Templates from 'core/templates';
  */
 const UPLOAD_SDK_URL = M.cfg.wwwroot + '/mod/fastpix/thirdparty/resumable-uploads/uploads.js';
 
+// The SDK MUST load as a native ES module — NOT through RequireJS. Babel's AMD
+// transform rewrites a bare `import()` into `require([...])`, which then fails
+// to load the ESM (throws upload_sdk_load_failed). The Function-constructor
+// indirection hides the import() from Babel so it stays native (same approach
+// as player.js / view.php).
+// eslint-disable-next-line no-new-func -- Intentional: hides native import() from Babel's AMD transform.
+const esmImport = (url) => Function('u', 'return import(u);')(url);
+
 /** Chunk size in KB (16 MB — matches the SDK default). */
 const UPLOAD_CHUNK_KB = 16384;
 
@@ -180,7 +188,7 @@ const loadUploadSdk = async () => {
     if (window.__fastpixUploadSdk) {
         return window.__fastpixUploadSdk;
     }
-    const mod = await import(UPLOAD_SDK_URL);
+    const mod = await esmImport(UPLOAD_SDK_URL);
     if (!mod.Uploader || typeof mod.Uploader.init !== 'function') {
         throw new Error('upload_sdk_no_init');
     }
