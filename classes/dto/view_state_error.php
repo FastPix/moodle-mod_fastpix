@@ -29,6 +29,7 @@ namespace mod_fastpix\dto;
  *   - videounavailable     (asset missing or soft-deleted; ADR-010)
  *   - drm_unsupported      (drm_required but client cannot play DRM)
  *   - capability_lost      (capability revoked mid-session)
+ *   - upload_failed        (asset transcode failed/errored — terminal)
  *
  * Only the reason key crosses the template boundary — never asset IDs,
  * statuses, or other internals (rule S9).
