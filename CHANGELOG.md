@@ -4,6 +4,28 @@ All notable changes to `mod_fastpix` are documented here. Format follows [Keep a
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **URL-pulled videos now honour the activity's Media settings.** The URL-pull
+  path sent only the source URL + context, so title, access policy, and captions
+  fell back to `local_fastpix`'s defaults (a Private/DRM choice was ignored).
+  `amd/src/upload_widget.js` now sends `title` / `accesspolicy` / `captionsmode` /
+  `languagecode` on `local_fastpix_create_url_pull_session`, matching the upload
+  path. Requires the companion `local_fastpix` build that accepts those params
+  (dependency pin bumped).
+
+### Changed
+
+- **Standard module events (issue #7).** The activity now fires Moodle's standard
+  `\mod_fastpix\event\course_module_viewed` (extending `\core\event\course_module_viewed`)
+  from `view.php`, and `\core\event\course_module_instance_list_viewed` from
+  `index.php`, so it participates in Moodle's standard logging and reports. The
+  previous custom `\mod_fastpix\event\activity_viewed` event is removed.
+
+---
+
 ## [v1.1.0] — 2026-06-15
 
 Feature release: media-protection + caption settings on the activity form,

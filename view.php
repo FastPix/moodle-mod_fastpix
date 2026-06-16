@@ -56,8 +56,16 @@ $PAGE->set_context($context);
 // suppression — leaving two descriptions. Core mods call this directly too.
 $PAGE->activityheader->set_description('');
 
-// Event fires AFTER set_context so observers see populated $PAGE state.
-\mod_fastpix\event\activity_viewed::create_from_activity($activity, $context)->trigger();
+// Standard module-viewed event (fires AFTER set_context so observers see
+// populated $PAGE state). Replaces the previous custom activity_viewed event
+// so mod_fastpix participates in Moodle's standard logging + reports.
+$event = \mod_fastpix\event\course_module_viewed::create([
+    'objectid' => $activity->id,
+    'context'  => $context,
+]);
+$event->add_record_snapshot('course', $course);
+$event->add_record_snapshot('fastpix', $activity);
+$event->trigger();
 
 $completion = new completion_info($course);
 $completion->set_module_viewed($cm);

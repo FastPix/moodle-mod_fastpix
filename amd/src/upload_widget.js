@@ -108,19 +108,19 @@ let widgetStrings = {};
 const getSessionField = (fieldname) => document.querySelector(`input[name="${fieldname}"]`);
 
 /**
- * Read the form's Media-settings fields into the create_upload_session args.
- * local_fastpix_create_upload_session consumes: contextid, title (required),
- * accesspolicy (required), captionsmode, languagecode — NOT filename/size.
+ * Read the form's Media-settings fields shared by BOTH the upload and URL-pull
+ * paths: contextid, title, accesspolicy, captionsmode, languagecode. These are
+ * what local_fastpix_create_upload_session and local_fastpix_create_url_pull_session
+ * consume so the chosen access policy + captions are applied either way.
  *
- * @param {File} file The file being uploaded (filename → fallback title).
- * @returns {Object} The web-service args.
+ * @param {String} fallbacktitle Title to use when the activity name is blank.
+ * @returns {Object} The shared web-service args.
  */
-const gatherUploadArgs = (file) => {
+const gatherMediaSettings = (fallbacktitle) => {
     const nameEl = document.querySelector('input[name="name"]');
-    let title = nameEl?.value ? nameEl.value.trim() : '';
-    if (!title) {
-        title = file?.name ? file.name.replace(/\.[^.]+$/, '') : (widgetStrings.untitledvideo || '');
-    }
+    const title = (nameEl?.value ? nameEl.value.trim() : '')
+        || fallbacktitle
+        || (widgetStrings.untitledvideo || '');
     const apEl = document.querySelector('input[name="access_policy"]:checked');
     const accesspolicy = apEl ? apEl.value : 'private';
     let captionsmode = 'none';
@@ -137,6 +137,18 @@ const gatherUploadArgs = (file) => {
         captionsmode: captionsmode,
         languagecode: languagecode,
     };
+};
+
+/**
+ * Build the create_upload_session args (shared media settings, with the
+ * filename as the title fallback — uploads have a file, URL pull does not).
+ *
+ * @param {File} file The file being uploaded (filename → fallback title).
+ * @returns {Object} The web-service args.
+ */
+const gatherUploadArgs = (file) => {
+    const filetitle = file?.name ? file.name.replace(/\.[^.]+$/, '') : '';
+    return gatherMediaSettings(filetitle);
 };
 
 const setSourceType = (value) => {
@@ -394,9 +406,12 @@ const validateUrl = async (sessionField, button) => {
 
     let session;
     try {
+        // Send the same Media settings (title + access policy + captions) the
+        // upload path sends, so URL-pulled videos honour the teacher's choice
+        // instead of falling back to local_fastpix's default access policy.
         [session] = await Promise.all(ajaxCall([{
             methodname: 'local_fastpix_create_url_pull_session',
-            args: { source_url: urlInput.value, contextid: widgetContextId },
+            args: {...gatherMediaSettings(''), source_url: urlInput.value},
         }]));
     } catch (e) {
         Notification.exception(e);
