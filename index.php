@@ -31,6 +31,14 @@ require_course_login($course);
 
 $coursecontext = context_course::instance($course->id);
 
+// Standard "instance list viewed" event for the activity index page.
+// (core's event is abstract; each module subclasses it — see mod_url.)
+$event = \mod_fastpix\event\course_module_instance_list_viewed::create([
+    'context' => $coursecontext,
+]);
+$event->add_record_snapshot('course', $course);
+$event->trigger();
+
 $PAGE->set_url('/mod/fastpix/index.php', ['id' => $id]);
 $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(format_string($course->fullname));
