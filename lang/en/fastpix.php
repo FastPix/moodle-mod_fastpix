@@ -79,7 +79,6 @@ $string['error_user_not_in_course'] = 'That user is not enrolled in this course,
 $string['error_videounavailable']    = 'This video is currently unavailable.';
 $string['error_vttrequired']      = 'Upload a .vtt subtitle file, or switch to auto-generated captions.';
 $string['event_watch_milestone']          = 'Watch milestone reached';
-$string['eventactivityviewed']  = 'FastPix Video viewed';
 $string['fastpix:addinstance']      = 'Add a new FastPix Video activity';
 $string['fastpix:graderoverride']   = 'Override grades for FastPix Video attempts';
 $string['fastpix:uploadmedia']      = 'Upload videos to FastPix from the activity edit form';
