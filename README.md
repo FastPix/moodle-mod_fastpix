@@ -1,4 +1,8 @@
-# mod_fastpix
+# mod_fastpix - FastPix Video activity for Moodle (graded, completion-tracked videos)
+
+[![Moodle 4.5+](https://img.shields.io/badge/Moodle-4.5%2B-F98012?logo=moodle&logoColor=white)](https://moodle.org/)
+[![PHP 8.1+](https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Release 1.1.0](https://img.shields.io/badge/release-1.1.0-0E7C66)](https://github.com/FastPix/moodle-mod_fastpix/blob/main/CHANGELOG.md)
 
 A Moodle activity module that lets teachers add a
 [FastPix](https://www.fastpix.com)-hosted video to any course, tracks how
@@ -14,6 +18,12 @@ directly; every video operation goes through `local_fastpix`. On its own,
 it adds the **FastPix Video** activity type, the player view, the watch
 tracker, completion and gradebook integration, and backup/restore.
 
+**Works with:** Moodle 4.5 LTS or later · PHP 8.1+ · requires `local_fastpix` 1.1.0+ · MySQL / MariaDB / PostgreSQL / MS SQL / Oracle
+
+📖 **Activity guide:** https://fastpix.com/docs/moodle/activity-plugin &nbsp;·&nbsp; 🚀 **Free FastPix account:** https://dashboard.fastpix.com/signup
+
+> **Install `local_fastpix` first.** `mod_fastpix` is the FastPix **Video activity** and builds on the foundation plugin. Moodle blocks the install until `local_fastpix` is present and connected to a FastPix account. See [The FastPix Moodle suite](#the-fastpix-moodle-suite).
+
 ## Features
 
 ### Video authoring
@@ -24,7 +34,7 @@ tracker, completion and gradebook integration, and backup/restore.
   survive an unreliable connection.
 - URL-pull sources are validated by the `local_fastpix` SSRF guard.
 - A **Media settings** section per activity: choose an access policy
-  (Private / Public / DRM) and a captions mode — auto-generate in a
+  (Private / Public / DRM) and a captions mode - auto-generate in a
   chosen language, or upload your own WebVTT (`.vtt`) subtitle file.
   These are applied to the video when it is uploaded to FastPix.
 
@@ -66,7 +76,7 @@ tracker, completion and gradebook integration, and backup/restore.
   biggest drop-off point, an engagement curve, and a per-student table.
 - Per-user view: one student's engagement across every FastPix video in the
   course.
-- CSV export on both. The report is read-only — it surfaces the watch data
+- CSV export on both. The report is read-only - it surfaces the watch data
   already recorded, with no extra tracking and no calls to FastPix.
 
 ### Backup, restore, and privacy
@@ -105,7 +115,7 @@ The plugin works with any database server supported by Moodle:
 
 Choose one of the following methods.
 
-### Install from the Moodle Plugins directory
+### Install from the Moodle Marketplace
 
 1. Sign in to your Moodle site as an administrator.
 2. Go to **Site administration > Plugins > Install plugins**.
@@ -113,8 +123,7 @@ Choose one of the following methods.
 
 ### Install from a ZIP file
 
-1. Download the latest release from the **Download** button on this Moodle
-   plugins directory page, or from the GitHub Releases page.
+1. Download the latest release from the **Download** button on this Moodle Marketplace page, or from the GitHub Releases page.
 2. Sign in to your Moodle site as an administrator.
 3. Go to **Site administration > Plugins > Install plugins** and upload
    the ZIP file. Don't unzip it first; Moodle installs the package
@@ -148,7 +157,7 @@ needed once `local_fastpix` is connected.
 1. Open a course and turn **Edit mode** on.
 2. Select **Add an activity or resource**, then choose **FastPix Video**.
 3. Enter a **Name** and an optional **Description**.
-4. Set **Media settings** — access policy and captions (see below).
+4. Set **Media settings** - access policy and captions (see below).
 5. Add the video in the **Video source** section (see below).
 6. Set **Playback options**, **Activity completion**, and **Grade** as
    needed.
@@ -164,13 +173,13 @@ The **Media settings** section sits above **Video source**: pick how the
 video is protected and captioned before you add it. These choices are
 applied when the video is uploaded to FastPix, not afterwards.
 
-- **Access policy** — how playback is gated:
+- **Access policy** - how playback is gated:
   - **Private** (default, recommended): only logged-in learners can play.
   - **Public**: anyone with the link can play.
   - **DRM**: encrypted playback on licensed devices; the strongest
     protection. Selectable only when `local_fastpix` has DRM configured;
     otherwise saving the activity is rejected.
-- **Captions & transcript** — off by default. Turn the toggle on, then
+- **Captions & transcript** - off by default. Turn the toggle on, then
   choose one mode:
   - **Auto-generate**: FastPix transcribes the audio in the **Language**
     you pick. Subtitles match the spoken language; they are not
@@ -280,6 +289,48 @@ data-request UI.
 
 For full details after install, see **Site administration > Users >
 Privacy and policies > Data registry** in your Moodle site.
+
+## The FastPix Moodle suite
+
+`mod_fastpix` is the graded video **activity**. It builds on `local_fastpix` and works alongside the embed plugins. All are GPL-3.0; install them in this order:
+
+| Plugin | What it does | Install order |
+|---|---|---|
+| [local_fastpix](https://github.com/FastPix/moodle-local_fastpix) | Foundation: stores FastPix credentials, secure HTTP gateway, webhook ingestion, playback-token signing. **Required first.** | 1 |
+| **mod_fastpix** (this repo) | The **FastPix Video** activity - upload or URL-pull a video, track watch coverage, and write completion and grades automatically. | 2 |
+| [filter_fastpix](https://github.com/FastPix/moodle-filter_fastpix) | Embed a FastPix video anywhere Moodle renders rich text, using a short code. | 3 |
+| [tiny_fastpix](https://github.com/FastPix/moodle-tiny_fastpix) | A TinyMCE editor button that inserts the embed short code for authors. | 4 |
+
+Browse everything in the [FastPix organization](https://github.com/orgs/FastPix/repositories).
+
+## FAQ
+
+**What is mod_fastpix, and what do I need first?**
+It is the FastPix **Video** activity for Moodle: teachers add a FastPix-hosted video to a course as a graded, completion-tracked activity. It requires [local_fastpix](https://github.com/FastPix/moodle-local_fastpix) installed and connected first. See [Requirements](#requirements).
+
+**How do I add a FastPix video to a course?**
+Turn on edit mode, choose **Add an activity or resource > FastPix Video**, then upload a file or paste a video URL. See [Add a video activity](#add-a-video-activity).
+
+**How does completion and grading work?**
+Completion is based on **watch coverage** - the unique seconds a student actually watched, deduplicated - not the playhead position (default 90%). The grade is written once when the student crosses the threshold. See [Completion and grade](#completion-and-grade).
+
+**Can I stop students from skipping ahead?**
+Turn on **Disable seeking** to reject forward seeks, and the module runs server-side integrity checks on every progress update. See [Watch tracking and anti-cheating](#watch-tracking-and-anti-cheating).
+
+**How do I add captions or subtitles?**
+In **Media settings**, auto-generate captions in a chosen language, or upload your own `.vtt` file. See [Media settings](#media-settings).
+
+**Does it support private videos and DRM?**
+Yes - set the access policy to Private, Public, or DRM per activity (DRM requires DRM configured in `local_fastpix`). See [Media settings](#media-settings).
+
+**How do I see who watched what?**
+Teachers with the `mod/fastpix:viewallattempts` capability get a per-video and per-student watch report with CSV export. See [Reporting and analytics](#reporting-and-analytics) and [Capabilities](#capabilities).
+
+**Which Moodle and PHP versions are supported?**
+Moodle 4.5 LTS or later, and PHP 8.1 or later (tested through PHP 8.3). See [Requirements](#requirements).
+
+**Is course backup/restore and GDPR supported?**
+Yes - full Moodle backup and restore (including per-user attempts), and the full Privacy API for per-user export and deletion. See [Backup and restore](#backup-and-restore) and [Privacy](#privacy).
 
 ## Support
 
